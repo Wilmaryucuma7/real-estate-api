@@ -9,4 +9,5 @@ public interface IOwnerRepository
 {
     Task<Owner?> GetByIdAsync(string id);
     Task<IEnumerable<Owner>> GetByIdsAsync(IEnumerable<string> ids);
+    Task<(IEnumerable<Owner> Owners, int TotalCount)> GetAllAsync(int page, int pageSize);
 }

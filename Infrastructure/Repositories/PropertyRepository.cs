@@ -4,7 +4,7 @@ using RealEstateAPI.Application.DTOs;
 using RealEstateAPI.Application.Interfaces;
 using RealEstateAPI.Domain.Entities;
 using RealEstateAPI.Infrastructure.Data;
-using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 namespace RealEstateAPI.Infrastructure.Repositories;
 
@@ -128,6 +128,65 @@ public sealed class PropertyRepository : IPropertyRepository
         catch (TimeoutException ex)
         {
             _logger.LogError(ex, "MongoDB timeout while filtering properties");
+            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
+        }
+    }
+
+    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetByOwnerIdAsync(string ownerId, int page, int pageSize)
+    {
+        try
+        {
+            var filter = Builders<Property>.Filter.Eq(p => p.OwnerId, ownerId);
+
+            // Get total count
+            var totalCount = (int)await _collection.CountDocumentsAsync(filter);
+
+            // Apply pagination
+            var skip = (page - 1) * pageSize;
+            var properties = await _collection
+                .Find(filter)
+                .Skip(skip)
+                .Limit(pageSize)
+                .ToListAsync();
+
+            return (properties, totalCount);
+        }
+        catch (MongoException ex)
+        {
+            _logger.LogError(ex, "MongoDB connection error while retrieving properties for owner {OwnerId}", ownerId);
+            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "MongoDB timeout while retrieving properties for owner {OwnerId}", ownerId);
+            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
+        }
+    }
+
+    public async Task<Property?> GetBySlugAsync(string slug)
+    {
+        try
+        {
+            // Convert slug back to potential name match
+            // "modern-beach-house" -> "Modern Beach House"
+            var namePattern = slug.Replace("-", " ");
+            
+            var filter = Builders<Property>.Filter.Regex(
+                p => p.Name,
+                new BsonRegularExpression($"^{Regex.Escape(namePattern)}$", "i"));
+
+            return await _collection
+                .Find(filter)
+                .FirstOrDefaultAsync();
+        }
+        catch (MongoException ex)
+        {
+            _logger.LogError(ex, "MongoDB connection error while retrieving property by slug {Slug}", slug);
+            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "MongoDB timeout while retrieving property by slug {Slug}", slug);
             throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
         }
     }

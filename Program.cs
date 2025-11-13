@@ -27,6 +27,7 @@ builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
 
 // Register services
 builder.Services.AddScoped<IPropertyService, PropertyService>();
+builder.Services.AddScoped<IOwnerService, OwnerService>();
 
 // Register validators
 builder.Services.AddScoped<PropertyFilterValidator>();

@@ -60,4 +60,35 @@ public sealed class OwnerRepository : IOwnerRepository
             throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
         }
     }
+
+    public async Task<(IEnumerable<Owner> Owners, int TotalCount)> GetAllAsync(int page, int pageSize)
+    {
+        try
+        {
+            var filter = FilterDefinition<Owner>.Empty;
+
+            // Get total count
+            var totalCount = (int)await _collection.CountDocumentsAsync(filter);
+
+            // Apply pagination
+            var skip = (page - 1) * pageSize;
+            var owners = await _collection
+                .Find(filter)
+                .Skip(skip)
+                .Limit(pageSize)
+                .ToListAsync();
+
+            return (owners, totalCount);
+        }
+        catch (MongoException ex)
+        {
+            _logger.LogError(ex, "MongoDB connection error while retrieving all owners");
+            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "MongoDB timeout while retrieving all owners");
+            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
+        }
+    }
 }

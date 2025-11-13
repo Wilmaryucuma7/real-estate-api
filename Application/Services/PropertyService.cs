@@ -7,7 +7,7 @@ using RealEstateAPI.Application.Interfaces;
 namespace RealEstateAPI.Application.Services;
 
 /// <summary>
-/// Service implementation for property business logic with owner relationship.
+/// Service implementation for property business logic with owner relationships.
 /// </summary>
 public sealed class PropertyService : IPropertyService
 {
@@ -104,5 +104,31 @@ public sealed class PropertyService : IPropertyService
             filter.PageSize ?? 10,
             totalCount
         );
+    }
+
+    public async Task<PropertyDetailDto?> GetPropertyBySlugAsync(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new ArgumentException("Property slug cannot be null or empty", nameof(slug));
+
+        _logger.LogInformation("Retrieving property by slug: {Slug}", slug);
+        var property = await _propertyRepository.GetBySlugAsync(slug);
+        
+        if (property is null)
+        {
+            _logger.LogWarning("Property with slug: {Slug} not found", slug);
+            return null;
+        }
+
+        // Load related owner
+        var owner = await _ownerRepository.GetByIdAsync(property.OwnerId);
+        
+        var propertyDto = _mapper.Map<PropertyDetailDto>(property);
+        if (owner is not null)
+        {
+            propertyDto.Owner = _mapper.Map<OwnerDto>(owner);
+        }
+
+        return propertyDto;
     }
 }

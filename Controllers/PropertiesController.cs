@@ -101,4 +101,32 @@ public sealed class PropertiesController : ControllerBase
         var property = await _propertyService.GetPropertyByIdAsync(id);
         return Ok(property);
     }
+
+    /// <summary>
+    /// Get property by slug-friendly name (SEO-friendly URL).
+    /// </summary>
+    /// <param name="slug">Property name in slug format (e.g., modern-beach-house)</param>
+    /// <returns>Detailed property information</returns>
+    /// <response code="200">Returns property details</response>
+    /// <response code="404">Property not found</response>
+    /// <example>
+    /// GET /api/properties/by-name/modern-beach-house
+    /// GET /api/properties/by-name/downtown-luxury-penthouse
+    /// </example>
+    [HttpGet("by-name/{slug}")]
+    [ProducesResponseType<PropertyDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PropertyDetailDto>> GetPropertyByName(string slug)
+    {
+        _logger.LogInformation("Requesting property by slug: {Slug}", slug);
+        var property = await _propertyService.GetPropertyBySlugAsync(slug);
+        
+        if (property is null)
+        {
+            return NotFound(new { message = $"Property with name '{slug}' was not found." });
+        }
+
+        return Ok(property);
+    }
 }
