@@ -3,6 +3,7 @@ using RealEstateAPI.Application.Mappings;
 using RealEstateAPI.Application.Services;
 using RealEstateAPI.Infrastructure.Configuration;
 using RealEstateAPI.Infrastructure.Data;
+using RealEstateAPI.Infrastructure.Middleware;
 using RealEstateAPI.Infrastructure.Repositories;
 using AutoMapper;
 
@@ -21,7 +22,7 @@ builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 // Register services
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 
-// Register AutoMapper for version 15.x (requires ILoggerFactory)
+// Register AutoMapper compatible with 15.x
 builder.Services.AddSingleton<IMapper>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -51,7 +52,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
-    // Include XML comments
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath))
@@ -72,6 +72,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Global exception handler middleware
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
