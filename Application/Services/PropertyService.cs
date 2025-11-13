@@ -49,10 +49,18 @@ public sealed class PropertyService : IPropertyService
         return _mapper.Map<PropertyDetailDto>(property);
     }
 
-    public async Task<IEnumerable<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter)
+    public async Task<PagedResponse<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter)
     {
         _logger.LogInformation("Filtering properties with criteria: {@Filter}", filter);
-        var properties = await _repository.GetFilteredAsync(filter);
-        return _mapper.Map<IEnumerable<PropertyDto>>(properties);
+        
+        var (properties, totalCount) = await _repository.GetFilteredAsync(filter);
+        var propertyDtos = _mapper.Map<IEnumerable<PropertyDto>>(properties);
+
+        return PagedResponse<PropertyDto>.Create(
+            propertyDtos,
+            filter.Page ?? 1,
+            filter.PageSize ?? 10,
+            totalCount
+        );
     }
 }

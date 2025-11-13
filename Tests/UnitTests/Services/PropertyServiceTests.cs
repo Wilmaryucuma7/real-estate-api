@@ -112,15 +112,15 @@ public class PropertyServiceTests
     }
 
     [Test]
-    public async Task GetFilteredPropertiesAsync_WithNameFilter_ShouldReturnFilteredProperties()
+    public async Task GetFilteredPropertiesAsync_WithNameFilter_ShouldReturnPagedProperties()
     {
         // Arrange
-        var filter = new PropertyFilterDto { Name = "Beach House" };
+        var filter = new PropertyFilterDto { Name = "Beach House", Page = 1, PageSize = 10 };
         var properties = new List<Property> { CreateTestProperty("1") };
         var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
 
         _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
-            .ReturnsAsync(properties);
+            .ReturnsAsync((properties, 1));
 
         _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
             .Returns(propertyDtos);
@@ -130,20 +130,24 @@ public class PropertyServiceTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.Data.Count(), Is.EqualTo(1));
+        Assert.That(result.TotalCount, Is.EqualTo(1));
+        Assert.That(result.Page, Is.EqualTo(1));
+        Assert.That(result.PageSize, Is.EqualTo(10));
+        Assert.That(result.TotalPages, Is.EqualTo(1));
         _repositoryMock.Verify(r => r.GetFilteredAsync(filter), Times.Once);
     }
 
     [Test]
-    public async Task GetFilteredPropertiesAsync_WithPriceRange_ShouldReturnFilteredProperties()
+    public async Task GetFilteredPropertiesAsync_WithPriceRange_ShouldReturnPagedProperties()
     {
         // Arrange
-        var filter = new PropertyFilterDto { MinPrice = 100000, MaxPrice = 500000 };
+        var filter = new PropertyFilterDto { MinPrice = 100000, MaxPrice = 500000, Page = 1, PageSize = 10 };
         var properties = new List<Property> { CreateTestProperty("1") };
         var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
 
         _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
-            .ReturnsAsync(properties);
+            .ReturnsAsync((properties, 1));
 
         _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
             .Returns(propertyDtos);
@@ -153,8 +157,33 @@ public class PropertyServiceTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
-        Assert.That(result.Count(), Is.EqualTo(1));
+        Assert.That(result.Data.Count(), Is.EqualTo(1));
+        Assert.That(result.TotalCount, Is.EqualTo(1));
         _repositoryMock.Verify(r => r.GetFilteredAsync(filter), Times.Once);
+    }
+
+    [Test]
+    public async Task GetFilteredPropertiesAsync_WithMultiplePages_ShouldCalculateTotalPagesCorrectly()
+    {
+        // Arrange
+        var filter = new PropertyFilterDto { Page = 2, PageSize = 10 };
+        var properties = new List<Property> { CreateTestProperty("1") };
+        var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
+
+        _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
+            .ReturnsAsync((properties, 25)); // 25 total items = 3 pages
+
+        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
+            .Returns(propertyDtos);
+
+        // Act
+        var result = await _service.GetFilteredPropertiesAsync(filter);
+
+        // Assert
+        Assert.That(result.TotalCount, Is.EqualTo(25));
+        Assert.That(result.TotalPages, Is.EqualTo(3));
+        Assert.That(result.HasPreviousPage, Is.True);
+        Assert.That(result.HasNextPage, Is.True);
     }
 
     private static Property CreateTestProperty(string id)

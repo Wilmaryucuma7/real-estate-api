@@ -36,7 +36,7 @@ public sealed class PropertyRepository : IPropertyRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<IEnumerable<Property>> GetFilteredAsync(PropertyFilterDto filter)
+    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetFilteredAsync(PropertyFilterDto filter)
     {
         var filterBuilder = Builders<Property>.Filter;
         var filters = new List<FilterDefinition<Property>>();
@@ -73,15 +73,20 @@ public sealed class PropertyRepository : IPropertyRepository
             ? filterBuilder.And(filters)
             : FilterDefinition<Property>.Empty;
 
+        // Get total count BEFORE pagination
+        var totalCount = (int)await _collection.CountDocumentsAsync(combinedFilter);
+
         // Apply pagination
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 10;
         var skip = (page - 1) * pageSize;
 
-        return await _collection
+        var properties = await _collection
             .Find(combinedFilter)
             .Skip(skip)
             .Limit(pageSize)
             .ToListAsync();
+
+        return (properties, totalCount);
     }
 }

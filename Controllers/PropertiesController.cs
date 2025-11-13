@@ -36,12 +36,14 @@ public sealed class PropertiesController : ControllerBase
     /// <param name="maxPrice">Maximum price range (optional)</param>
     /// <param name="page">Page number (default: 1)</param>
     /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
-    /// <returns>List of properties matching the criteria</returns>
+    /// <returns>Paginated list of properties with metadata</returns>
+    /// <response code="200">Returns paginated properties with total count and page info</response>
+    /// <response code="400">Invalid filter parameters</response>
     [HttpGet]
-    [ProducesResponseType<IEnumerable<PropertyDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PagedResponse<PropertyDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<PropertyDto>>> GetProperties(
+    public async Task<ActionResult<PagedResponse<PropertyDto>>> GetProperties(
         [FromQuery] string? name = null,
         [FromQuery] string? address = null,
         [FromQuery] decimal? minPrice = null,
@@ -83,12 +85,20 @@ public sealed class PropertiesController : ControllerBase
 
         if (hasFilters)
         {
-            var properties = await _propertyService.GetFilteredPropertiesAsync(filter);
-            return Ok(properties);
+            var pagedResult = await _propertyService.GetFilteredPropertiesAsync(filter);
+            return Ok(pagedResult);
         }
 
+        // For unfiltered requests, still return with pagination metadata
         var allProperties = await _propertyService.GetAllPropertiesAsync();
-        return Ok(allProperties);
+        var pagedResponse = PagedResponse<PropertyDto>.Create(
+            allProperties,
+            page ?? 1,
+            pageSize ?? 10,
+            allProperties.Count()
+        );
+
+        return Ok(pagedResponse);
     }
 
     /// <summary>
@@ -96,6 +106,8 @@ public sealed class PropertiesController : ControllerBase
     /// </summary>
     /// <param name="id">Property unique identifier</param>
     /// <returns>Detailed property information</returns>
+    /// <response code="200">Returns property details</response>
+    /// <response code="404">Property not found</response>
     [HttpGet("{id}")]
     [ProducesResponseType<PropertyDetailDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

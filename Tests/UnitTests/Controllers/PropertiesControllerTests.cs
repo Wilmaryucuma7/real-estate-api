@@ -35,7 +35,7 @@ public class PropertiesControllerTests
     }
 
     [Test]
-    public async Task GetProperties_WithoutFilters_ReturnsAllProperties()
+    public async Task GetProperties_WithoutFilters_ReturnsPagedProperties()
     {
         // Arrange
         var properties = new List<PropertyDto>
@@ -53,14 +53,15 @@ public class PropertiesControllerTests
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var returnedProperties = okResult!.Value as IEnumerable<PropertyDto>;
-        Assert.That(returnedProperties, Is.Not.Null);
-        Assert.That(returnedProperties!.Count(), Is.EqualTo(2));
+        var pagedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(pagedResponse, Is.Not.Null);
+        Assert.That(pagedResponse!.Data.Count(), Is.EqualTo(2));
+        Assert.That(pagedResponse.TotalCount, Is.EqualTo(2));
         _serviceMock.Verify(s => s.GetAllPropertiesAsync(), Times.Once);
     }
 
     [Test]
-    public async Task GetProperties_WithValidNameFilter_ReturnsFilteredProperties()
+    public async Task GetProperties_WithValidNameFilter_ReturnsPagedFilteredProperties()
     {
         // Arrange
         var properties = new List<PropertyDto>
@@ -68,8 +69,10 @@ public class PropertiesControllerTests
             new() { IdOwner = "OWN-1", Name = "Beach House", Address = "Ocean Drive", Price = 500000, Image = "img1.jpg" }
         };
 
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
+
         _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
-            .ReturnsAsync(properties);
+            .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetProperties(name: "Beach");
@@ -77,9 +80,11 @@ public class PropertiesControllerTests
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var returnedProperties = okResult!.Value as IEnumerable<PropertyDto>;
-        Assert.That(returnedProperties, Is.Not.Null);
-        Assert.That(returnedProperties!.Count(), Is.EqualTo(1));
+        var returnedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(returnedResponse, Is.Not.Null);
+        Assert.That(returnedResponse!.Data.Count(), Is.EqualTo(1));
+        Assert.That(returnedResponse.TotalCount, Is.EqualTo(1));
+        Assert.That(returnedResponse.TotalPages, Is.EqualTo(1));
     }
 
     [Test]
@@ -110,7 +115,7 @@ public class PropertiesControllerTests
     }
 
     [Test]
-    public async Task GetProperties_WithValidPriceRange_ReturnsFilteredProperties()
+    public async Task GetProperties_WithValidPriceRange_ReturnsPagedFilteredProperties()
     {
         // Arrange
         var properties = new List<PropertyDto>
@@ -118,8 +123,10 @@ public class PropertiesControllerTests
             new() { IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 300000, Image = "img.jpg" }
         };
 
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
+
         _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
-            .ReturnsAsync(properties);
+            .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetProperties(minPrice: 200000, maxPrice: 400000);
@@ -129,7 +136,7 @@ public class PropertiesControllerTests
     }
 
     [Test]
-    public async Task GetProperties_WithPagination_ReturnsPagedResults()
+    public async Task GetProperties_WithPagination_ReturnsCorrectPageMetadata()
     {
         // Arrange
         var properties = new List<PropertyDto>
@@ -141,10 +148,14 @@ public class PropertiesControllerTests
             .ReturnsAsync(properties);
 
         // Act
-        var result = await _controller.GetProperties(page: 2, pageSize: 10);
+        var result = await _controller.GetProperties(page: 1, pageSize: 10);
 
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var pagedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(pagedResponse!.Page, Is.EqualTo(1));
+        Assert.That(pagedResponse.PageSize, Is.EqualTo(10));
     }
 
     [Test]
@@ -216,8 +227,10 @@ public class PropertiesControllerTests
             new() { IdOwner = "OWN-1", Name = "Casa en Bogotá", Address = "Calle José María", Price = 300000, Image = "img.jpg" }
         };
 
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
+
         _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
-            .ReturnsAsync(properties);
+            .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetProperties(name: "Bogotá", address: "José María");
@@ -226,5 +239,31 @@ public class PropertiesControllerTests
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
         Assert.That(okResult!.Value, Is.Not.Null);
+    }
+
+    [Test]
+    public async Task GetProperties_WithMultiplePages_ReturnsCorrectMetadata()
+    {
+        // Arrange
+        var properties = new List<PropertyDto>
+        {
+            new() { IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 100000, Image = "img.jpg" }
+        };
+
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 2, 10, 25); // Page 2 of 3
+
+        _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
+            .ReturnsAsync(pagedResponse);
+
+        // Act
+        var result = await _controller.GetProperties(name: "test", page: 2, pageSize: 10);
+
+        // Assert
+        Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
+        var okResult = result.Result as OkObjectResult;
+        var returnedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(returnedResponse!.TotalPages, Is.EqualTo(3));
+        Assert.That(returnedResponse.HasPreviousPage, Is.True);
+        Assert.That(returnedResponse.HasNextPage, Is.True);
     }
 }
