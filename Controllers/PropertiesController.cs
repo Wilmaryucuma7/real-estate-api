@@ -78,27 +78,10 @@ public sealed class PropertiesController : ControllerBase
             );
         }
 
-        var hasFilters = !string.IsNullOrWhiteSpace(name) || 
-                       !string.IsNullOrWhiteSpace(address) || 
-                       minPrice.HasValue || 
-                       maxPrice.HasValue;
-
-        if (hasFilters)
-        {
-            var pagedResult = await _propertyService.GetFilteredPropertiesAsync(filter);
-            return Ok(pagedResult);
-        }
-
-        // For unfiltered requests, still return with pagination metadata
-        var allProperties = await _propertyService.GetAllPropertiesAsync();
-        var pagedResponse = PagedResponse<PropertyDto>.Create(
-            allProperties,
-            page ?? 1,
-            pageSize ?? 10,
-            allProperties.Count()
-        );
-
-        return Ok(pagedResponse);
+        // Always use GetFilteredPropertiesAsync - it handles pagination correctly
+        // even when there are no filters (empty filter = get all with pagination)
+        var pagedResult = await _propertyService.GetFilteredPropertiesAsync(filter);
+        return Ok(pagedResult);
     }
 
     /// <summary>

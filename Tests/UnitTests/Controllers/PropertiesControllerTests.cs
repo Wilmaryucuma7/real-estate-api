@@ -44,8 +44,10 @@ public class PropertiesControllerTests
             new() { IdOwner = "OWN-2", Name = "Property 2", Address = "Address 2", Price = 200000, Image = "img2.jpg" }
         };
 
-        _serviceMock.Setup(s => s.GetAllPropertiesAsync())
-            .ReturnsAsync(properties);
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 2);
+
+        _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
+            .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetProperties();
@@ -53,11 +55,11 @@ public class PropertiesControllerTests
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var pagedResponse = okResult!.Value as PagedResponse<PropertyDto>;
-        Assert.That(pagedResponse, Is.Not.Null);
-        Assert.That(pagedResponse!.Data.Count(), Is.EqualTo(2));
-        Assert.That(pagedResponse.TotalCount, Is.EqualTo(2));
-        _serviceMock.Verify(s => s.GetAllPropertiesAsync(), Times.Once);
+        var returnedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(returnedResponse, Is.Not.Null);
+        Assert.That(returnedResponse!.Data.Count(), Is.EqualTo(2));
+        Assert.That(returnedResponse.TotalCount, Is.EqualTo(2));
+        _serviceMock.Verify(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()), Times.Once);
     }
 
     [Test]
@@ -144,8 +146,10 @@ public class PropertiesControllerTests
             new() { IdOwner = "OWN-1", Name = "Property 1", Address = "Address 1", Price = 100000, Image = "img1.jpg" }
         };
 
-        _serviceMock.Setup(s => s.GetAllPropertiesAsync())
-            .ReturnsAsync(properties);
+        var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
+
+        _serviceMock.Setup(s => s.GetFilteredPropertiesAsync(It.IsAny<PropertyFilterDto>()))
+            .ReturnsAsync(pagedResponse);
 
         // Act
         var result = await _controller.GetProperties(page: 1, pageSize: 10);
@@ -153,9 +157,9 @@ public class PropertiesControllerTests
         // Assert
         Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
         var okResult = result.Result as OkObjectResult;
-        var pagedResponse = okResult!.Value as PagedResponse<PropertyDto>;
-        Assert.That(pagedResponse!.Page, Is.EqualTo(1));
-        Assert.That(pagedResponse.PageSize, Is.EqualTo(10));
+        var returnedResponse = okResult!.Value as PagedResponse<PropertyDto>;
+        Assert.That(returnedResponse!.Page, Is.EqualTo(1));
+        Assert.That(returnedResponse.PageSize, Is.EqualTo(10));
     }
 
     [Test]
