@@ -129,4 +129,25 @@ public sealed class PropertiesController : ControllerBase
 
         return Ok(property);
     }
+
+    /// <summary>
+    /// Get property traces (transaction history) by slug name.
+    /// </summary>
+    /// <param name="slug">Property name in slug format (e.g., modern-beach-house)</param>
+    /// <returns>List of property traces</returns>
+    /// <response code="200">Returns property traces</response>
+    /// <response code="404">Property not found</response>
+    /// <example>
+    /// GET /api/properties/modern-beach-house/traces
+    /// </example>
+    [HttpGet("{slug}/traces")]
+    [ProducesResponseType<IEnumerable<PropertyTraceDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<PropertyTraceDto>>> GetPropertyTraces(string slug)
+    {
+        _logger.LogInformation("Requesting traces for property slug: {Slug}", slug);
+        var traces = await _propertyService.GetPropertyTracesBySlugAsync(slug);
+        return Ok(traces);
+    }
 }

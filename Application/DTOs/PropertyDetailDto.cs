@@ -1,17 +1,18 @@
 namespace RealEstateAPI.Application.DTOs;
 
 /// <summary>
-/// Data transfer object for detailed property view with complete information.
+/// Data transfer object for detailed property view without traces.
+/// Traces should be fetched separately via /api/properties/{slug}/traces
 /// </summary>
-public sealed record PropertyDetailDto
+public sealed class PropertyDetailDto
 {
-    public required string Id { get; init; }
-    public required string Name { get; init; }
-    public required string Address { get; init; }
-    public required decimal Price { get; init; }
-    public required string CodeInternal { get; init; }
-    public required int Year { get; init; }
-    public OwnerDto? Owner { get; set; }
-    public IReadOnlyCollection<PropertyImageDto> Images { get; init; } = [];
-    public IReadOnlyCollection<PropertyTraceDto> Traces { get; init; } = [];
+    public required string Id { get; set; }
+    public required string Slug { get; set; }
+    public required string Name { get; set; }
+    public required string Address { get; set; }
+    public required decimal Price { get; set; }
+    public required string CodeInternal { get; set; }
+    public required int Year { get; set; }
+    public required OwnerDto Owner { get; set; }
+    public required IEnumerable<PropertyImageDto> Images { get; set; }
 }

@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using RealEstateAPI.Application.DTOs;
 using RealEstateAPI.Application.Exceptions;
+using RealEstateAPI.Application.Helpers;
 using RealEstateAPI.Application.Interfaces;
 
 namespace RealEstateAPI.Application.Services;
@@ -130,5 +131,25 @@ public sealed class PropertyService : IPropertyService
         }
 
         return propertyDto;
+    }
+
+    public async Task<IEnumerable<PropertyTraceDto>> GetPropertyTracesBySlugAsync(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            throw new ArgumentException("Property slug cannot be null or empty", nameof(slug));
+
+        _logger.LogInformation("Retrieving traces for property slug: {Slug}", slug);
+        var property = await _propertyRepository.GetBySlugAsync(slug);
+        
+        if (property is null)
+        {
+            _logger.LogWarning("Property with slug: {Slug} not found", slug);
+            throw new PropertyNotFoundException(slug);
+        }
+
+        // Map traces to DTOs
+        var traceDtos = _mapper.Map<IEnumerable<PropertyTraceDto>>(property.Traces ?? Enumerable.Empty<Domain.Entities.PropertyTrace>());
+        
+        return traceDtos;
     }
 }

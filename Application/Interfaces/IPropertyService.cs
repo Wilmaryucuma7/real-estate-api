@@ -11,4 +11,5 @@ public interface IPropertyService
     Task<PropertyDetailDto?> GetPropertyByIdAsync(string id);
     Task<PagedResponse<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter);
     Task<PropertyDetailDto?> GetPropertyBySlugAsync(string slug);
+    Task<IEnumerable<PropertyTraceDto>> GetPropertyTracesBySlugAsync(string slug);
 }

@@ -10,4 +10,6 @@ public sealed record PropertyDto
     public required string Address { get; init; }
     public required decimal Price { get; init; }
     public required string Image { get; init; }
+    public required string Id { get; set; }
+    public required string Slug { get; set; }
 }
