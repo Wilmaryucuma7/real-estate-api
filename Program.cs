@@ -4,7 +4,7 @@ using RealEstateAPI.Application.Services;
 using RealEstateAPI.Application.Validators;
 using RealEstateAPI.Infrastructure.Configuration;
 using RealEstateAPI.Infrastructure.Data;
-using RealEstateAPI.Infrastructure.HealthChecks;
+using RealEstateAPI.Infrastructure.Initialization;
 using RealEstateAPI.Infrastructure.Middleware;
 using RealEstateAPI.Infrastructure.Repositories;
 using AutoMapper;
@@ -18,6 +18,9 @@ builder.Services.Configure<MongoDbSettings>(
 // Register MongoDB context
 builder.Services.AddSingleton<MongoDbContext>();
 
+// Register database initializer
+builder.Services.AddSingleton<DatabaseInitializer>();
+
 // Register repositories
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
@@ -27,9 +30,6 @@ builder.Services.AddScoped<IPropertyService, PropertyService>();
 
 // Register validators
 builder.Services.AddScoped<PropertyFilterValidator>();
-
-// Register health check as a service
-builder.Services.AddScoped<MongoDbCollectionHealthCheck>();
 
 // Register AutoMapper compatible with 15.x
 builder.Services.AddSingleton<IMapper>(sp =>
@@ -41,13 +41,6 @@ builder.Services.AddSingleton<IMapper>(sp =>
     var config = new MapperConfiguration(configExpression, loggerFactory);
     return config.CreateMapper();
 });
-
-// Add Health Checks with custom MongoDB collection validator
-builder.Services.AddHealthChecks()
-    .AddCheck<MongoDbCollectionHealthCheck>(
-        name: "mongodb_collections",
-        tags: new[] { "db", "mongodb", "ready" },
-        timeout: TimeSpan.FromSeconds(5));
 
 // Add controllers
 builder.Services.AddControllers();
@@ -89,25 +82,23 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Validate database setup on startup
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Checking MongoDB database setup...");
-
-using (var scope = app.Services.CreateScope())
+// ========================================
+// DATABASE INITIALIZATION - Fail Fast
+// ========================================
+// Validate database on startup - will throw exception if not configured
+try
 {
-    var healthCheck = scope.ServiceProvider.GetRequiredService<MongoDbCollectionHealthCheck>();
-    var result = await healthCheck.CheckHealthAsync(new Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckContext());
+    var dbInitializer = app.Services.GetRequiredService<DatabaseInitializer>();
+    await dbInitializer.ValidateAndInitializeAsync();
+}
+catch (InvalidOperationException ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogCritical(ex, "? APPLICATION STARTUP FAILED: {Message}", ex.Message);
+    logger.LogCritical("?? The application cannot start without a properly configured database.");
     
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy)
-    {
-        logger.LogWarning("??  Database setup incomplete: {Description}", result.Description);
-        logger.LogWarning("??  The API will start but may not function properly until the database is seeded.");
-        logger.LogWarning("??  Run: mongosh < Database/seed-data.js");
-    }
-    else
-    {
-        logger.LogInformation("? MongoDB database is properly configured");
-    }
+    // Exit the application - don't start if database is not ready
+    Environment.Exit(1);
 }
 
 // Global exception handler middleware
@@ -123,63 +114,6 @@ if (app.Environment.IsDevelopment())
         options.RoutePrefix = string.Empty;
     });
 }
-
-// Health check endpoints
-app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    ResponseWriter = async (context, report) =>
-    {
-        context.Response.ContentType = "application/json";
-        var result = System.Text.Json.JsonSerializer.Serialize(new
-        {
-            status = report.Status.ToString(),
-            checks = report.Entries.Select(e => new
-            {
-                name = e.Key,
-                status = e.Value.Status.ToString(),
-                description = e.Value.Description,
-                duration = e.Value.Duration.TotalMilliseconds,
-                data = e.Value.Data
-            }),
-            totalDuration = report.TotalDuration.TotalMilliseconds
-        });
-        await context.Response.WriteAsync(result);
-    }
-});
-
-// Simple liveness endpoint
-app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    Predicate = _ => false // Don't check anything, just return 200 if app is running
-});
-
-// Readiness endpoint (checks database)
-app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("ready"),
-    ResponseWriter = async (context, report) =>
-    {
-        if (report.Status != Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
-        {
-            context.Response.ContentType = "application/json";
-            
-            var firstEntry = report.Entries.Values.FirstOrDefault();
-            var errorDescription = firstEntry.Description ?? "Database not ready";
-            
-            var result = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                status = report.Status.ToString(),
-                error = errorDescription,
-                instructions = "Please run the seed script: mongosh < Database/seed-data.js"
-            });
-            await context.Response.WriteAsync(result);
-        }
-        else
-        {
-            await context.Response.WriteAsync("Ready");
-        }
-    }
-});
 
 app.UseHttpsRedirection();
 
