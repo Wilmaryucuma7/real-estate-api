@@ -37,6 +37,66 @@ RealEstateAPI/
     ??? README.md             # Database setup guide
 ```
 
+## ??? Database Design
+
+This API uses **MongoDB** with a hybrid approach: **separate collections** for reusable entities and **embedded documents** for dependent data.
+
+| Entity | MongoDB Strategy | Reason |
+|--------|------------------|--------|
+| **Owner** | ??? Separate Collection | Can own multiple properties (reusable) |
+| **Property** | ??? Main Collection | Root entity |
+| **PropertyImage** | ?? Embedded in Property | Always depends on a property |
+| **PropertyTrace** | ?? Embedded in Property | Always depends on a property |
+
+### Collections Structure
+
+**Owners Collection:**
+```json
+{
+  "_id": "OWN-001",
+  "name": "Maria Rodriguez",
+  "address": "450 Brickell Ave, Miami, FL 33131",
+  "photo": "https://i.pravatar.cc/150?img=47",
+  "birthday": "1985-03-15T00:00:00Z"
+}
+```
+
+**Properties Collection** (with Owner reference):
+```json
+{
+  "_id": ObjectId("..."),
+  "name": "Modern Beach House",
+  "address": "1250 Ocean Drive, Miami Beach, FL 33139",
+  "price": 1250000.00,
+  "codeInternal": "PROP-2024-001",
+  "year": 2022,
+  "ownerId": "OWN-001",  // Foreign key reference
+  "images": [
+    {
+      "idPropertyImage": "IMG-001-01",
+      "file": "https://images.unsplash.com/...",
+      "enabled": true
+    }
+  ],
+  "traces": [
+    {
+      "idPropertyTrace": "TRACE-001-01",
+      "dateSale": "2022-06-15T00:00:00Z",
+      "name": "Initial Purchase",
+      "value": 1250000.00,
+      "tax": 62500.00
+    }
+  ]
+}
+```
+
+### Relationship Benefits
+- ? **One owner ? Many properties** relationship
+- ? Data normalization and integrity
+- ? Reusable owner information
+- ? Optimized queries with indexes on `ownerId`
+- ? Efficient joins in application layer
+
 ## ?? Technologies
 
 - **.NET 9** - Latest .NET framework
@@ -51,16 +111,17 @@ RealEstateAPI/
 
 - ? Clean Architecture with dependency injection
 - ? Repository pattern for data access
+- ? **Separate Owner collection** with foreign key relationships
 - ? Global exception handling middleware
 - ? Custom exceptions (PropertyNotFoundException, ValidationException)
 - ? FluentValidation with security constraints (XSS/SQL injection prevention)
 - ? AutoMapper for DTO mappings
 - ? **Pagination with metadata** for frontend integration
-- ? Comprehensive unit tests (50 tests, 100% passing)
+- ? Comprehensive unit tests (49 tests, 100% passing)
 - ? Swagger documentation
 - ? CORS enabled for frontend integration
 - ? Structured logging with ILogger
-- ? MongoDB with embedded documents (Owner, Images, Traces)
+- ? MongoDB with hybrid approach (references + embedded documents)
 - ? Optimized queries with indexes
 - ? Support for accented characters (á, é, í, ó, ú, ñ)
 
@@ -110,12 +171,18 @@ dotnet restore
 
 ### 3. Setup MongoDB Database
 
-#### Option A: Load sample data
+#### Option A: Load sample data (creates both collections)
 ```bash
 # Using MongoDB Shell
 mongosh mongodb://localhost:27017
+use RealEstateDB
 load("Database/seed-data.js")
 ```
+
+The seed script creates:
+- ? **Owners collection** with 10 owners
+- ? **Properties collection** with 10 properties (referencing owners)
+- ? Indexes on both collections for optimization
 
 #### Option B: Restore from backup
 ```bash
@@ -294,20 +361,20 @@ function PropertyList() {
       {properties?.data.map(property => (
         <div key={property.idOwner}>{property.name}</div>
       ))}
-      
+
       <div className="pagination">
-        <button 
+        <button
           disabled={!properties?.hasPreviousPage}
           onClick={() => setCurrentPage(prev => prev - 1)}
         >
           Previous
         </button>
-        
+
         <span>
           Page {properties?.page} of {properties?.totalPages}
         </span>
-        
-        <button 
+
+        <button
           disabled={!properties?.hasNextPage}
           onClick={() => setCurrentPage(prev => prev + 1)}
         >
@@ -340,29 +407,30 @@ dotnet test --logger "console;verbosity=detailed"
 ```
 
 ### Test Coverage
-- **50 unit tests** covering:
-  - ? Service layer business logic (7 tests)
+- **49 unit tests** covering:
+  - ? Service layer with owner relationships (6 tests)
   - ? Controller endpoints (15 tests)
   - ? Middleware exception handling (9 tests)
   - ? FluentValidation rules (15 tests)
-  - ? Repository filter building (3 tests)
   - ? AutoMapper configurations (4 tests)
 
 **Test Results:**
 ```
-Total: 50 | Passed: 50 | Failed: 0 | Skipped: 0
+Total: 49 | Passed: 49 | Failed: 0 | Skipped: 0
 Duration: ~2 seconds
 ```
 
 ## ??? Sample Data
 
-The seed data includes **10 diverse properties**:
+The seed data includes:
+- **10 owners** (in separate Owners collection)
+- **10 properties** (referencing owners via `ownerId`)
 - Price range: $385,000 - $3,800,000
 - Locations: Miami Beach, Coral Gables, Key Biscayne, Coconut Grove, Doral, Pinecrest, Homestead
 - Each property includes:
-  - Complete owner information
-  - 1-3 property images
-  - 1-2 transaction traces
+  - Owner reference (`ownerId`)
+  - 1-3 property images (embedded)
+  - 1-2 transaction traces (embedded)
 
 ## ?? Database Backup
 
@@ -370,7 +438,7 @@ MongoDB backup is located in `/Database/backup/RealEstateDB/`
 
 **To restore:**
 ```bash
-mongorestore --db=RealEstateDB ./Database/backup/RealEstateDB
+mongorestore --db=RealEstateDB ./Database/backup/RealEstateAPI
 ```
 
 **To create a new backup:**
@@ -395,8 +463,8 @@ type(scope): message
 Examples:
 feat(api): add property filtering endpoint
 fix(repository): correct price range query
+refactor(domain): separate owners into independent collection
 test(service): add unit tests for property service
-refactor(entities): optimize domain models
 docs(readme): update installation instructions
 ```
 
@@ -494,7 +562,8 @@ builder.Services.AddCors(options =>
 ## ? Project Requirements Checklist
 
 - ? Backend API with .NET 9 and C#
-- ? MongoDB database integration
+- ? MongoDB database integration with normalized data model
+- ? **Separate Owner collection** with foreign key relationships
 - ? Property filtering (name, address, price range)
 - ? **Pagination with metadata**
 - ? DTOs with required fields (IdOwner, Name, Address, Price, Image)
@@ -502,7 +571,7 @@ builder.Services.AddCors(options =>
 - ? **Custom exception handling** (PropertyNotFoundException, ValidationException)
 - ? **FluentValidation** with security rules
 - ? Optimized database queries with indexes
-- ? **50 comprehensive unit tests** with NUnit
+- ? **49 comprehensive unit tests** with NUnit
 - ? Clean, maintainable code following SOLID principles
 - ? Comprehensive documentation
 - ? Database backup included
