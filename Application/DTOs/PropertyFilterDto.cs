@@ -1,7 +1,7 @@
 namespace RealEstateAPI.Application.DTOs;
 
 /// <summary>
-/// Data transfer object for filtering properties.
+/// Data transfer object for filtering properties with pagination support.
 /// </summary>
 public sealed record PropertyFilterDto
 {
@@ -9,4 +9,6 @@ public sealed record PropertyFilterDto
     public string? Address { get; init; }
     public decimal? MinPrice { get; init; }
     public decimal? MaxPrice { get; init; }
+    public int? Page { get; init; } = 1;
+    public int? PageSize { get; init; } = 10;
 }

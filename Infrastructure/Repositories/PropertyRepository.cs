@@ -8,7 +8,7 @@ using RealEstateAPI.Infrastructure.Data;
 namespace RealEstateAPI.Infrastructure.Repositories;
 
 /// <summary>
-/// MongoDB implementation of property repository.
+/// MongoDB implementation of property repository with pagination support.
 /// </summary>
 public sealed class PropertyRepository : IPropertyRepository
 {
@@ -73,8 +73,15 @@ public sealed class PropertyRepository : IPropertyRepository
             ? filterBuilder.And(filters)
             : FilterDefinition<Property>.Empty;
 
+        // Apply pagination
+        var page = filter.Page ?? 1;
+        var pageSize = filter.PageSize ?? 10;
+        var skip = (page - 1) * pageSize;
+
         return await _collection
             .Find(combinedFilter)
+            .Skip(skip)
+            .Limit(pageSize)
             .ToListAsync();
     }
 }

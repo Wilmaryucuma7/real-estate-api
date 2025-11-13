@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
 using RealEstateAPI.Application.DTOs;
+using RealEstateAPI.Application.Exceptions;
 using RealEstateAPI.Application.Interfaces;
 using RealEstateAPI.Application.Services;
 using RealEstateAPI.Domain.Entities;
@@ -88,7 +89,7 @@ public class PropertyServiceTests
     }
 
     [Test]
-    public async Task GetPropertyByIdAsync_WithInvalidId_ShouldReturnNull()
+    public void GetPropertyByIdAsync_WithInvalidId_ShouldThrowPropertyNotFoundException()
     {
         // Arrange
         var invalidId = "invalid-id";
@@ -96,12 +97,18 @@ public class PropertyServiceTests
         _repositoryMock.Setup(r => r.GetByIdAsync(invalidId))
             .ReturnsAsync((Property?)null);
 
-        // Act
-        var result = await _service.GetPropertyByIdAsync(invalidId);
-
-        // Assert
-        Assert.That(result, Is.Null);
+        // Act & Assert
+        Assert.ThrowsAsync<PropertyNotFoundException>(async () =>
+            await _service.GetPropertyByIdAsync(invalidId));
         _repositoryMock.Verify(r => r.GetByIdAsync(invalidId), Times.Once);
+    }
+
+    [Test]
+    public void GetPropertyByIdAsync_WithNullOrEmptyId_ShouldThrowArgumentException()
+    {
+        // Act & Assert
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await _service.GetPropertyByIdAsync(string.Empty));
     }
 
     [Test]

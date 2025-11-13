@@ -1,6 +1,7 @@
 using RealEstateAPI.Application.Interfaces;
 using RealEstateAPI.Application.Mappings;
 using RealEstateAPI.Application.Services;
+using RealEstateAPI.Application.Validators;
 using RealEstateAPI.Infrastructure.Configuration;
 using RealEstateAPI.Infrastructure.Data;
 using RealEstateAPI.Infrastructure.Middleware;
@@ -21,6 +22,9 @@ builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 
 // Register services
 builder.Services.AddScoped<IPropertyService, PropertyService>();
+
+// Register validators
+builder.Services.AddScoped<PropertyFilterValidator>();
 
 // Register AutoMapper compatible with 15.x
 builder.Services.AddSingleton<IMapper>(sp =>
@@ -44,7 +48,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Real Estate API",
         Version = "v1",
-        Description = "RESTful API for managing real estate properties",
+        Description = "RESTful API for managing real estate properties with validation and pagination",
         Contact = new()
         {
             Name = "Real Estate API",

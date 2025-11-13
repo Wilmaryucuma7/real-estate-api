@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using RealEstateAPI.Application.Exceptions;
 
 namespace RealEstateAPI.Infrastructure.Middleware;
 
@@ -10,13 +11,16 @@ public sealed class GlobalExceptionHandlerMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     public GlobalExceptionHandlerMiddleware(
         RequestDelegate next,
-        ILogger<GlobalExceptionHandlerMiddleware> logger)
+        ILogger<GlobalExceptionHandlerMiddleware> logger,
+        IWebHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
+        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -32,21 +36,51 @@ public sealed class GlobalExceptionHandlerMiddleware
         }
     }
 
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+        var (statusCode, message, errors) = exception switch
+        {
+            PropertyNotFoundException notFound => (
+                HttpStatusCode.NotFound,
+                notFound.Message,
+                (IDictionary<string, string[]>?)null
+            ),
+
+            Application.Exceptions.ValidationException validation => (
+                HttpStatusCode.BadRequest,
+                "One or more validation errors occurred",
+                validation.Errors
+            ),
+
+            ArgumentException => (
+                HttpStatusCode.BadRequest,
+                "Invalid request parameters",
+                (IDictionary<string, string[]>?)null
+            ),
+
+            _ => (
+                HttpStatusCode.InternalServerError,
+                "An internal server error occurred",
+                (IDictionary<string, string[]>?)null
+            )
+        };
+
+        context.Response.StatusCode = (int)statusCode;
 
         var response = new ErrorResponse
         {
-            StatusCode = context.Response.StatusCode,
-            Message = "An internal server error occurred",
-            Details = exception.Message
+            StatusCode = (int)statusCode,
+            Message = message,
+            Details = _environment.IsDevelopment() ? exception.Message : null,
+            Errors = errors
         };
 
         var options = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
         var json = JsonSerializer.Serialize(response, options);
@@ -58,5 +92,6 @@ public sealed class GlobalExceptionHandlerMiddleware
         public required int StatusCode { get; init; }
         public required string Message { get; init; }
         public string? Details { get; init; }
+        public IDictionary<string, string[]>? Errors { get; init; }
     }
 }
