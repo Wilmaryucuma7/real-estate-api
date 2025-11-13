@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using RealEstateAPI.Application.DTOs;
+using RealEstateAPI.Application.Exceptions;
 using RealEstateAPI.Application.Interfaces;
 
 namespace RealEstateAPI.Application.Services;
@@ -26,53 +27,32 @@ public sealed class PropertyService : IPropertyService
 
     public async Task<IEnumerable<PropertyDto>> GetAllPropertiesAsync()
     {
-        try
-        {
-            _logger.LogInformation("Retrieving all properties");
-            var properties = await _repository.GetAllAsync();
-            return _mapper.Map<IEnumerable<PropertyDto>>(properties);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all properties");
-            throw;
-        }
+        _logger.LogInformation("Retrieving all properties");
+        var properties = await _repository.GetAllAsync();
+        return _mapper.Map<IEnumerable<PropertyDto>>(properties);
     }
 
     public async Task<PropertyDetailDto?> GetPropertyByIdAsync(string id)
     {
-        try
-        {
-            _logger.LogInformation("Retrieving property with ID: {PropertyId}", id);
-            var property = await _repository.GetByIdAsync(id);
-            
-            if (property is null)
-            {
-                _logger.LogWarning("Property with ID: {PropertyId} not found", id);
-                return null;
-            }
+        if (string.IsNullOrWhiteSpace(id))
+            throw new ArgumentException("Property ID cannot be null or empty", nameof(id));
 
-            return _mapper.Map<PropertyDetailDto>(property);
-        }
-        catch (Exception ex)
+        _logger.LogInformation("Retrieving property with ID: {PropertyId}", id);
+        var property = await _repository.GetByIdAsync(id);
+        
+        if (property is null)
         {
-            _logger.LogError(ex, "Error retrieving property with ID: {PropertyId}", id);
-            throw;
+            _logger.LogWarning("Property with ID: {PropertyId} not found", id);
+            throw new PropertyNotFoundException(id);
         }
+
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<IEnumerable<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter)
     {
-        try
-        {
-            _logger.LogInformation("Filtering properties with criteria: {@Filter}", filter);
-            var properties = await _repository.GetFilteredAsync(filter);
-            return _mapper.Map<IEnumerable<PropertyDto>>(properties);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error filtering properties");
-            throw;
-        }
+        _logger.LogInformation("Filtering properties with criteria: {@Filter}", filter);
+        var properties = await _repository.GetFilteredAsync(filter);
+        return _mapper.Map<IEnumerable<PropertyDto>>(properties);
     }
 }

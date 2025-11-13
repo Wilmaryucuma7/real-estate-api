@@ -1,10 +1,11 @@
 // MongoDB Seed Data Script for Real Estate API
-// Run this script in MongoDB Shell or MongoDB Compass
+// Run this script in MongoDB Compass MONGOSH tab (select RealEstateDB first)
+// Or run in mongosh CLI
 
-// Use the RealEstateDB database
+// Switch to RealEstateDB database (creates it if doesn't exist)
 use RealEstateDB
 
-// Drop existing collection (optional - use only if you want to start fresh)
+// Drop existing collection if you want to start fresh
 // db.Properties.drop()
 
 // Insert sample properties with embedded owners, images, and traces
@@ -375,13 +376,14 @@ db.Properties.insertMany([
       }
     ]
   }
-])
+]);
 
 // Create indexes for optimized queries
-db.Properties.createIndex({ "name": "text", "address": "text" })
-db.Properties.createIndex({ "price": 1 })
-db.Properties.createIndex({ "owner.idOwner": 1 })
-db.Properties.createIndex({ "name": 1, "address": 1, "price": 1 })
+db.Properties.createIndex({ "name": "text", "address": "text" });
+db.Properties.createIndex({ "price": 1 });
+db.Properties.createIndex({ "owner.idOwner": 1 });
+db.Properties.createIndex({ "name": 1, "address": 1, "price": 1 });
 
-print("? Successfully inserted 10 properties with sample data")
-print("? Created indexes for optimized queries")
+print("? Successfully inserted 10 properties with sample data");
+print("? Created indexes for optimized queries");
+print("? Database 'RealEstateDB' is ready!");
