@@ -5,7 +5,7 @@ using RealEstateAPI.Application.Exceptions;
 namespace RealEstateAPI.Infrastructure.Middleware;
 
 /// <summary>
-/// Global exception handling middleware for consistent error responses.
+/// Global exception handling middleware for consistent error responses including database errors.
 /// </summary>
 public sealed class GlobalExceptionHandlerMiddleware
 {
@@ -57,6 +57,12 @@ public sealed class GlobalExceptionHandlerMiddleware
             ArgumentException => (
                 HttpStatusCode.BadRequest,
                 "Invalid request parameters",
+                (IDictionary<string, string[]>?)null
+            ),
+
+            InvalidOperationException invalidOp when invalidOp.Message.Contains("Database") => (
+                HttpStatusCode.ServiceUnavailable,
+                "Database service is currently unavailable",
                 (IDictionary<string, string[]>?)null
             ),
 
