@@ -12,9 +12,8 @@ public sealed class PropertyMappingProfile : Profile
 {
     public PropertyMappingProfile()
     {
-        // Property -> PropertyDto (for list views)
+        // Property -> PropertyDto (for list views - without Id)
         CreateMap<Property, PropertyDto>()
-            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugHelper.GenerateSlug(src.Name)))
             .ForMember(dest => dest.IdOwner, opt => opt.MapFrom(src => src.OwnerId))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
@@ -25,11 +24,11 @@ public sealed class PropertyMappingProfile : Profile
                     ? src.Images.First(img => img.Enabled).File
                     : string.Empty));
 
-        // Property -> PropertyDetailDto (for detail views without traces)
+        // Property -> PropertyDetailDto (for detail views with Id)
         CreateMap<Property, PropertyDetailDto>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugHelper.GenerateSlug(src.Name)))
-            .ForMember(dest => dest.Owner, opt => opt.Ignore()); // Set manually in service
+            .ForMember(dest => dest.IdOwner, opt => opt.MapFrom(src => src.OwnerId));
 
         // Owner -> OwnerDto
         CreateMap<Owner, OwnerDto>()
@@ -44,5 +43,13 @@ public sealed class PropertyMappingProfile : Profile
             .ForMember(dest => dest.IdPropertyImage, opt => opt.MapFrom(src => src.IdPropertyImage))
             .ForMember(dest => dest.File, opt => opt.MapFrom(src => src.File))
             .ForMember(dest => dest.Enabled, opt => opt.MapFrom(src => src.Enabled));
+
+        // PropertyTrace -> PropertyTraceDto
+        CreateMap<PropertyTrace, PropertyTraceDto>()
+            .ForMember(dest => dest.IdPropertyTrace, opt => opt.MapFrom(src => src.IdPropertyTrace))
+            .ForMember(dest => dest.DateSale, opt => opt.MapFrom(src => src.DateSale))
+            .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
+            .ForMember(dest => dest.Value, opt => opt.MapFrom(src => src.Value))
+            .ForMember(dest => dest.Tax, opt => opt.MapFrom(src => src.Tax));
     }
 }

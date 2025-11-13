@@ -8,11 +8,11 @@ public sealed class PropertyDetailDto
 {
     public required string Id { get; set; }
     public required string Slug { get; set; }
+    public required string IdOwner { get; set; }
     public required string Name { get; set; }
     public required string Address { get; set; }
     public required decimal Price { get; set; }
     public required string CodeInternal { get; set; }
     public required int Year { get; set; }
-    public required OwnerDto Owner { get; set; }
     public required IEnumerable<PropertyImageDto> Images { get; set; }
 }

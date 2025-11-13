@@ -20,9 +20,4 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Infrastructure\Filters\" />
-    <Folder Include="Infrastructure\HealthChecks\" />
-  </ItemGroup>
-
 </Project>

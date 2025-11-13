@@ -74,6 +74,7 @@ public class PropertyMappingProfileTests
 
         // Assert
         Assert.That(result, Is.Not.Null);
+        Assert.That(result.Slug, Is.EqualTo("beach-house"));
         Assert.That(result.IdOwner, Is.EqualTo("OWN-001"));
         Assert.That(result.Name, Is.EqualTo("Beach House"));
         Assert.That(result.Address, Is.EqualTo("123 Ocean Drive"));
@@ -122,12 +123,13 @@ public class PropertyMappingProfileTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Id, Is.EqualTo("507f1f77bcf86cd799439011"));
+        Assert.That(result.Slug, Is.EqualTo("beach-house"));
+        Assert.That(result.IdOwner, Is.EqualTo("OWN-001"));
         Assert.That(result.Name, Is.EqualTo("Beach House"));
         Assert.That(result.CodeInternal, Is.EqualTo("PROP-001"));
         Assert.That(result.Year, Is.EqualTo(2022));
-        Assert.That(result.Owner, Is.Null); // Owner is loaded separately in service
         Assert.That(result.Images.Count, Is.EqualTo(1));
-        Assert.That(result.Traces.Count, Is.EqualTo(1));
+        // Traces are no longer part of PropertyDetailDto - they're fetched separately via /api/properties/{slug}/traces
     }
 
     [Test]

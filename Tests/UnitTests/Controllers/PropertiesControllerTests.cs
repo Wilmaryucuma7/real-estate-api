@@ -40,8 +40,8 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Property 1", Address = "Address 1", Price = 100000, Image = "img1.jpg" },
-            new() { IdOwner = "OWN-2", Name = "Property 2", Address = "Address 2", Price = 200000, Image = "img2.jpg" }
+            new() { Slug = "property-1", IdOwner = "OWN-1", Name = "Property 1", Address = "Address 1", Price = 100000, Image = "img1.jpg" },
+            new() { Slug = "property-2", IdOwner = "OWN-2", Name = "Property 2", Address = "Address 2", Price = 200000, Image = "img2.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 2);
@@ -68,7 +68,7 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Beach House", Address = "Ocean Drive", Price = 500000, Image = "img1.jpg" }
+            new() { Slug = "beach-house", IdOwner = "OWN-1", Name = "Beach House", Address = "Ocean Drive", Price = 500000, Image = "img1.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
@@ -122,7 +122,7 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 300000, Image = "img.jpg" }
+            new() { Slug = "property", IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 300000, Image = "img.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
@@ -143,7 +143,7 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Property 1", Address = "Address 1", Price = 100000, Image = "img1.jpg" }
+            new() { Slug = "property-1", IdOwner = "OWN-1", Name = "Property 1", Address = "Address 1", Price = 100000, Image = "img1.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
@@ -178,19 +178,14 @@ public class PropertiesControllerTests
         var property = new PropertyDetailDto
         {
             Id = propertyId,
+            Slug = "test-property",
+            IdOwner = "OWN-1",
             Name = "Test Property",
             Address = "Test Address",
             Price = 250000,
             CodeInternal = "PROP-001",
             Year = 2020,
-            Owner = new OwnerDto 
-            { 
-                IdOwner = "OWN-1", 
-                Name = "Owner", 
-                Address = "Owner Address" 
-            },
-            Images = new List<PropertyImageDto>(),
-            Traces = new List<PropertyTraceDto>()
+            Images = new List<PropertyImageDto>()
         };
 
         _serviceMock.Setup(s => s.GetPropertyByIdAsync(propertyId))
@@ -228,7 +223,7 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Casa en Bogotá", Address = "Calle José María", Price = 300000, Image = "img.jpg" }
+            new() { Slug = "casa-en-bogota", IdOwner = "OWN-1", Name = "Casa en Bogotá", Address = "Calle José María", Price = 300000, Image = "img.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 1, 10, 1);
@@ -251,7 +246,7 @@ public class PropertiesControllerTests
         // Arrange
         var properties = new List<PropertyDto>
         {
-            new() { IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 100000, Image = "img.jpg" }
+            new() { Slug = "property", IdOwner = "OWN-1", Name = "Property", Address = "Address", Price = 100000, Image = "img.jpg" }
         };
 
         var pagedResponse = PagedResponse<PropertyDto>.Create(properties, 2, 10, 25); // Page 2 of 3

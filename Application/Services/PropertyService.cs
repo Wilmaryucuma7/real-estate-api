@@ -2,7 +2,6 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using RealEstateAPI.Application.DTOs;
 using RealEstateAPI.Application.Exceptions;
-using RealEstateAPI.Application.Helpers;
 using RealEstateAPI.Application.Interfaces;
 
 namespace RealEstateAPI.Application.Services;
@@ -66,14 +65,8 @@ public sealed class PropertyService : IPropertyService
             throw new PropertyNotFoundException(id);
         }
 
-        // Load related owner
-        var owner = await _ownerRepository.GetByIdAsync(property.OwnerId);
-        
+        // Map property - IdOwner is already set by AutoMapper
         var propertyDto = _mapper.Map<PropertyDetailDto>(property);
-        if (owner is not null)
-        {
-            propertyDto.Owner = _mapper.Map<OwnerDto>(owner);
-        }
 
         return propertyDto;
     }
@@ -121,14 +114,8 @@ public sealed class PropertyService : IPropertyService
             return null;
         }
 
-        // Load related owner
-        var owner = await _ownerRepository.GetByIdAsync(property.OwnerId);
-        
+        // Map property - IdOwner is already set by AutoMapper
         var propertyDto = _mapper.Map<PropertyDetailDto>(property);
-        if (owner is not null)
-        {
-            propertyDto.Owner = _mapper.Map<OwnerDto>(owner);
-        }
 
         return propertyDto;
     }
@@ -147,7 +134,7 @@ public sealed class PropertyService : IPropertyService
             throw new PropertyNotFoundException(slug);
         }
 
-        // Map traces to DTOs
+        // Map traces to DTOs - now PropertyTrace mapping is defined
         var traceDtos = _mapper.Map<IEnumerable<PropertyTraceDto>>(property.Traces ?? Enumerable.Empty<Domain.Entities.PropertyTrace>());
         
         return traceDtos;

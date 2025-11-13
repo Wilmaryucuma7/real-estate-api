@@ -3,13 +3,12 @@ namespace RealEstateAPI.Application.DTOs;
 /// <summary>
 /// Data transfer object for property list view (basic information with one image).
 /// </summary>
-public sealed record PropertyDto
+public sealed class PropertyDto
 {
-    public string IdOwner { get; set; } = string.Empty;
-    public required string Name { get; init; }
-    public required string Address { get; init; }
-    public required decimal Price { get; init; }
-    public required string Image { get; init; }
-    public required string Id { get; set; }
     public required string Slug { get; set; }
+    public required string IdOwner { get; set; }
+    public required string Name { get; set; }
+    public required string Address { get; set; }
+    public required decimal Price { get; set; }
+    public required string Image { get; set; }
 }

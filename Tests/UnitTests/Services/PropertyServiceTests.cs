@@ -62,6 +62,7 @@ public class PropertyServiceTests
         _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
             .Returns((Property p) => new PropertyDto
             {
+                Slug = "test-property",
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
@@ -80,38 +81,27 @@ public class PropertyServiceTests
     }
 
     [Test]
-    public async Task GetPropertyByIdAsync_WithValidId_ShouldReturnPropertyWithOwner()
+    public async Task GetPropertyByIdAsync_WithValidId_ShouldReturnPropertyWithOwnerId()
     {
         // Arrange
         var propertyId = "507f1f77bcf86cd799439011";
         var property = CreateTestProperty(propertyId, "OWN-001");
-        var owner = CreateTestOwner("OWN-001");
         
         _propertyRepositoryMock.Setup(r => r.GetByIdAsync(propertyId))
             .ReturnsAsync(property);
-
-        _ownerRepositoryMock.Setup(r => r.GetByIdAsync("OWN-001"))
-            .ReturnsAsync(owner);
 
         _mapperMock.Setup(m => m.Map<PropertyDetailDto>(property))
             .Returns(new PropertyDetailDto
             {
                 Id = property.Id!,
+                Slug = "test-property",
+                IdOwner = property.OwnerId,
                 Name = property.Name,
                 Address = property.Address,
                 Price = property.Price,
                 CodeInternal = property.CodeInternal,
                 Year = property.Year,
-                Images = new List<PropertyImageDto>(),
-                Traces = new List<PropertyTraceDto>()
-            });
-
-        _mapperMock.Setup(m => m.Map<OwnerDto>(owner))
-            .Returns(new OwnerDto
-            {
-                IdOwner = owner.Id,
-                Name = owner.Name,
-                Address = owner.Address
+                Images = new List<PropertyImageDto>()
             });
 
         // Act
@@ -120,10 +110,8 @@ public class PropertyServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Id, Is.EqualTo(propertyId));
-        Assert.That(result.Owner, Is.Not.Null);
-        Assert.That(result.Owner!.IdOwner, Is.EqualTo("OWN-001"));
+        Assert.That(result.IdOwner, Is.EqualTo("OWN-001"));
         _propertyRepositoryMock.Verify(r => r.GetByIdAsync(propertyId), Times.Once);
-        _ownerRepositoryMock.Verify(r => r.GetByIdAsync("OWN-001"), Times.Once);
     }
 
     [Test]
@@ -166,6 +154,7 @@ public class PropertyServiceTests
         _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
             .Returns((Property p) => new PropertyDto
             {
+                Slug = "beach-house",
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
@@ -203,6 +192,7 @@ public class PropertyServiceTests
         _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
             .Returns((Property p) => new PropertyDto
             {
+                Slug = "test-property",
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
