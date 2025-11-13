@@ -5,9 +5,9 @@ namespace RealEstateAPI.Application.DTOs;
 /// </summary>
 public sealed record PropertyDto
 {
-    public required string IdOwner { get; init; }
+    public string IdOwner { get; set; } = string.Empty;
     public required string Name { get; init; }
     public required string Address { get; init; }
     public required decimal Price { get; init; }
-    public string? Image { get; init; }
+    public required string Image { get; init; }
 }

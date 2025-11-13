@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 namespace RealEstateAPI.Domain.Entities;
 
 /// <summary>
-/// Represents a real estate property in the system.
+/// Represents a real estate property with owner reference.
 /// </summary>
 public class Property
 {
@@ -33,9 +33,12 @@ public class Property
     [BsonRequired]
     public required int Year { get; set; }
 
-    [BsonElement("owner")]
+    /// <summary>
+    /// Reference to the owner's ID (foreign key pattern)
+    /// </summary>
+    [BsonElement("ownerId")]
     [BsonRequired]
-    public required Owner Owner { get; set; }
+    public required string OwnerId { get; set; }
 
     [BsonElement("images")]
     public List<PropertyImage> Images { get; set; } = [];

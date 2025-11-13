@@ -7,20 +7,23 @@ using RealEstateAPI.Application.Interfaces;
 namespace RealEstateAPI.Application.Services;
 
 /// <summary>
-/// Service implementation for property business logic.
+/// Service implementation for property business logic with owner relationship.
 /// </summary>
 public sealed class PropertyService : IPropertyService
 {
-    private readonly IPropertyRepository _repository;
+    private readonly IPropertyRepository _propertyRepository;
+    private readonly IOwnerRepository _ownerRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<PropertyService> _logger;
 
     public PropertyService(
-        IPropertyRepository repository,
+        IPropertyRepository propertyRepository,
+        IOwnerRepository ownerRepository,
         IMapper mapper,
         ILogger<PropertyService> logger)
     {
-        _repository = repository;
+        _propertyRepository = propertyRepository;
+        _ownerRepository = ownerRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -28,8 +31,24 @@ public sealed class PropertyService : IPropertyService
     public async Task<IEnumerable<PropertyDto>> GetAllPropertiesAsync()
     {
         _logger.LogInformation("Retrieving all properties");
-        var properties = await _repository.GetAllAsync();
-        return _mapper.Map<IEnumerable<PropertyDto>>(properties);
+        var properties = await _propertyRepository.GetAllAsync();
+        
+        // Get all unique owner IDs
+        var ownerIds = properties.Select(p => p.OwnerId).Distinct();
+        var owners = await _ownerRepository.GetByIdsAsync(ownerIds);
+        var ownerDictionary = owners.ToDictionary(o => o.Id);
+
+        var propertyDtos = properties.Select(p =>
+        {
+            var dto = _mapper.Map<PropertyDto>(p);
+            if (ownerDictionary.TryGetValue(p.OwnerId, out var owner))
+            {
+                dto.IdOwner = owner.Id;
+            }
+            return dto;
+        });
+
+        return propertyDtos;
     }
 
     public async Task<PropertyDetailDto?> GetPropertyByIdAsync(string id)
@@ -38,7 +57,7 @@ public sealed class PropertyService : IPropertyService
             throw new ArgumentException("Property ID cannot be null or empty", nameof(id));
 
         _logger.LogInformation("Retrieving property with ID: {PropertyId}", id);
-        var property = await _repository.GetByIdAsync(id);
+        var property = await _propertyRepository.GetByIdAsync(id);
         
         if (property is null)
         {
@@ -46,15 +65,38 @@ public sealed class PropertyService : IPropertyService
             throw new PropertyNotFoundException(id);
         }
 
-        return _mapper.Map<PropertyDetailDto>(property);
+        // Load related owner
+        var owner = await _ownerRepository.GetByIdAsync(property.OwnerId);
+        
+        var propertyDto = _mapper.Map<PropertyDetailDto>(property);
+        if (owner is not null)
+        {
+            propertyDto.Owner = _mapper.Map<OwnerDto>(owner);
+        }
+
+        return propertyDto;
     }
 
     public async Task<PagedResponse<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter)
     {
         _logger.LogInformation("Filtering properties with criteria: {@Filter}", filter);
         
-        var (properties, totalCount) = await _repository.GetFilteredAsync(filter);
-        var propertyDtos = _mapper.Map<IEnumerable<PropertyDto>>(properties);
+        var (properties, totalCount) = await _propertyRepository.GetFilteredAsync(filter);
+        
+        // Get all unique owner IDs
+        var ownerIds = properties.Select(p => p.OwnerId).Distinct();
+        var owners = await _ownerRepository.GetByIdsAsync(ownerIds);
+        var ownerDictionary = owners.ToDictionary(o => o.Id);
+
+        var propertyDtos = properties.Select(p =>
+        {
+            var dto = _mapper.Map<PropertyDto>(p);
+            if (ownerDictionary.TryGetValue(p.OwnerId, out var owner))
+            {
+                dto.IdOwner = owner.Id;
+            }
+            return dto;
+        });
 
         return PagedResponse<PropertyDto>.Create(
             propertyDtos,

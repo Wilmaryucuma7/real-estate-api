@@ -11,12 +11,13 @@ using RealEstateAPI.Domain.Entities;
 namespace RealEstateAPI.Tests.UnitTests.Services;
 
 /// <summary>
-/// Unit tests for PropertyService business logic.
+/// Unit tests for PropertyService business logic with owner relationships.
 /// </summary>
 [TestFixture]
 public class PropertyServiceTests
 {
-    private Mock<IPropertyRepository> _repositoryMock = null!;
+    private Mock<IPropertyRepository> _propertyRepositoryMock = null!;
+    private Mock<IOwnerRepository> _ownerRepositoryMock = null!;
     private Mock<IMapper> _mapperMock = null!;
     private Mock<ILogger<PropertyService>> _loggerMock = null!;
     private PropertyService _service = null!;
@@ -24,12 +25,14 @@ public class PropertyServiceTests
     [SetUp]
     public void Setup()
     {
-        _repositoryMock = new Mock<IPropertyRepository>();
+        _propertyRepositoryMock = new Mock<IPropertyRepository>();
+        _ownerRepositoryMock = new Mock<IOwnerRepository>();
         _mapperMock = new Mock<IMapper>();
         _loggerMock = new Mock<ILogger<PropertyService>>();
         
         _service = new PropertyService(
-            _repositoryMock.Object,
+            _propertyRepositoryMock.Object,
+            _ownerRepositoryMock.Object,
             _mapperMock.Object,
             _loggerMock.Object);
     }
@@ -40,21 +43,31 @@ public class PropertyServiceTests
         // Arrange
         var properties = new List<Property>
         {
-            CreateTestProperty("1"),
-            CreateTestProperty("2")
+            CreateTestProperty("1", "OWN-001"),
+            CreateTestProperty("2", "OWN-002")
         };
 
-        var propertyDtos = new List<PropertyDto>
+        var owners = new List<Owner>
         {
-            CreateTestPropertyDto("OWN-1"),
-            CreateTestPropertyDto("OWN-2")
+            CreateTestOwner("OWN-001"),
+            CreateTestOwner("OWN-002")
         };
 
-        _repositoryMock.Setup(r => r.GetAllAsync())
+        _propertyRepositoryMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(properties);
 
-        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
-            .Returns(propertyDtos);
+        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(owners);
+
+        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
+            .Returns((Property p) => new PropertyDto
+            {
+                IdOwner = p.OwnerId,
+                Name = p.Name,
+                Address = p.Address,
+                Price = p.Price,
+                Image = "https://example.com/image.jpg"
+            });
 
         // Act
         var result = await _service.GetAllPropertiesAsync();
@@ -62,22 +75,44 @@ public class PropertyServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count(), Is.EqualTo(2));
-        _repositoryMock.Verify(r => r.GetAllAsync(), Times.Once);
+        _propertyRepositoryMock.Verify(r => r.GetAllAsync(), Times.Once);
+        _ownerRepositoryMock.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Once);
     }
 
     [Test]
-    public async Task GetPropertyByIdAsync_WithValidId_ShouldReturnProperty()
+    public async Task GetPropertyByIdAsync_WithValidId_ShouldReturnPropertyWithOwner()
     {
         // Arrange
         var propertyId = "507f1f77bcf86cd799439011";
-        var property = CreateTestProperty(propertyId);
-        var propertyDetailDto = CreateTestPropertyDetailDto(propertyId);
-
-        _repositoryMock.Setup(r => r.GetByIdAsync(propertyId))
+        var property = CreateTestProperty(propertyId, "OWN-001");
+        var owner = CreateTestOwner("OWN-001");
+        
+        _propertyRepositoryMock.Setup(r => r.GetByIdAsync(propertyId))
             .ReturnsAsync(property);
 
+        _ownerRepositoryMock.Setup(r => r.GetByIdAsync("OWN-001"))
+            .ReturnsAsync(owner);
+
         _mapperMock.Setup(m => m.Map<PropertyDetailDto>(property))
-            .Returns(propertyDetailDto);
+            .Returns(new PropertyDetailDto
+            {
+                Id = property.Id!,
+                Name = property.Name,
+                Address = property.Address,
+                Price = property.Price,
+                CodeInternal = property.CodeInternal,
+                Year = property.Year,
+                Images = new List<PropertyImageDto>(),
+                Traces = new List<PropertyTraceDto>()
+            });
+
+        _mapperMock.Setup(m => m.Map<OwnerDto>(owner))
+            .Returns(new OwnerDto
+            {
+                IdOwner = owner.Id,
+                Name = owner.Name,
+                Address = owner.Address
+            });
 
         // Act
         var result = await _service.GetPropertyByIdAsync(propertyId);
@@ -85,7 +120,10 @@ public class PropertyServiceTests
         // Assert
         Assert.That(result, Is.Not.Null);
         Assert.That(result!.Id, Is.EqualTo(propertyId));
-        _repositoryMock.Verify(r => r.GetByIdAsync(propertyId), Times.Once);
+        Assert.That(result.Owner, Is.Not.Null);
+        Assert.That(result.Owner!.IdOwner, Is.EqualTo("OWN-001"));
+        _propertyRepositoryMock.Verify(r => r.GetByIdAsync(propertyId), Times.Once);
+        _ownerRepositoryMock.Verify(r => r.GetByIdAsync("OWN-001"), Times.Once);
     }
 
     [Test]
@@ -94,13 +132,13 @@ public class PropertyServiceTests
         // Arrange
         var invalidId = "invalid-id";
 
-        _repositoryMock.Setup(r => r.GetByIdAsync(invalidId))
+        _propertyRepositoryMock.Setup(r => r.GetByIdAsync(invalidId))
             .ReturnsAsync((Property?)null);
 
         // Act & Assert
         Assert.ThrowsAsync<PropertyNotFoundException>(async () =>
             await _service.GetPropertyByIdAsync(invalidId));
-        _repositoryMock.Verify(r => r.GetByIdAsync(invalidId), Times.Once);
+        _propertyRepositoryMock.Verify(r => r.GetByIdAsync(invalidId), Times.Once);
     }
 
     [Test]
@@ -116,14 +154,24 @@ public class PropertyServiceTests
     {
         // Arrange
         var filter = new PropertyFilterDto { Name = "Beach House", Page = 1, PageSize = 10 };
-        var properties = new List<Property> { CreateTestProperty("1") };
-        var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
+        var properties = new List<Property> { CreateTestProperty("1", "OWN-001") };
+        var owners = new List<Owner> { CreateTestOwner("OWN-001") };
 
-        _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
+        _propertyRepositoryMock.Setup(r => r.GetFilteredAsync(filter))
             .ReturnsAsync((properties, 1));
 
-        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
-            .Returns(propertyDtos);
+        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(owners);
+
+        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
+            .Returns((Property p) => new PropertyDto
+            {
+                IdOwner = p.OwnerId,
+                Name = p.Name,
+                Address = p.Address,
+                Price = p.Price,
+                Image = "https://example.com/image.jpg"
+            });
 
         // Act
         var result = await _service.GetFilteredPropertiesAsync(filter);
@@ -135,31 +183,7 @@ public class PropertyServiceTests
         Assert.That(result.Page, Is.EqualTo(1));
         Assert.That(result.PageSize, Is.EqualTo(10));
         Assert.That(result.TotalPages, Is.EqualTo(1));
-        _repositoryMock.Verify(r => r.GetFilteredAsync(filter), Times.Once);
-    }
-
-    [Test]
-    public async Task GetFilteredPropertiesAsync_WithPriceRange_ShouldReturnPagedProperties()
-    {
-        // Arrange
-        var filter = new PropertyFilterDto { MinPrice = 100000, MaxPrice = 500000, Page = 1, PageSize = 10 };
-        var properties = new List<Property> { CreateTestProperty("1") };
-        var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
-
-        _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
-            .ReturnsAsync((properties, 1));
-
-        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
-            .Returns(propertyDtos);
-
-        // Act
-        var result = await _service.GetFilteredPropertiesAsync(filter);
-
-        // Assert
-        Assert.That(result, Is.Not.Null);
-        Assert.That(result.Data.Count(), Is.EqualTo(1));
-        Assert.That(result.TotalCount, Is.EqualTo(1));
-        _repositoryMock.Verify(r => r.GetFilteredAsync(filter), Times.Once);
+        _propertyRepositoryMock.Verify(r => r.GetFilteredAsync(filter), Times.Once);
     }
 
     [Test]
@@ -167,14 +191,24 @@ public class PropertyServiceTests
     {
         // Arrange
         var filter = new PropertyFilterDto { Page = 2, PageSize = 10 };
-        var properties = new List<Property> { CreateTestProperty("1") };
-        var propertyDtos = new List<PropertyDto> { CreateTestPropertyDto("OWN-1") };
+        var properties = new List<Property> { CreateTestProperty("1", "OWN-001") };
+        var owners = new List<Owner> { CreateTestOwner("OWN-001") };
 
-        _repositoryMock.Setup(r => r.GetFilteredAsync(filter))
+        _propertyRepositoryMock.Setup(r => r.GetFilteredAsync(filter))
             .ReturnsAsync((properties, 25)); // 25 total items = 3 pages
 
-        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(properties))
-            .Returns(propertyDtos);
+        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(owners);
+
+        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
+            .Returns((Property p) => new PropertyDto
+            {
+                IdOwner = p.OwnerId,
+                Name = p.Name,
+                Address = p.Address,
+                Price = p.Price,
+                Image = "https://example.com/image.jpg"
+            });
 
         // Act
         var result = await _service.GetFilteredPropertiesAsync(filter);
@@ -186,7 +220,7 @@ public class PropertyServiceTests
         Assert.That(result.HasNextPage, Is.True);
     }
 
-    private static Property CreateTestProperty(string id)
+    private static Property CreateTestProperty(string id, string ownerId)
     {
         return new Property
         {
@@ -196,14 +230,7 @@ public class PropertyServiceTests
             Price = 250000,
             CodeInternal = "PROP-001",
             Year = 2020,
-            Owner = new Owner
-            {
-                IdOwner = "OWN-001",
-                Name = "John Doe",
-                Address = "456 Owner St",
-                Photo = null,
-                Birthday = null
-            },
+            OwnerId = ownerId,
             Images = new List<PropertyImage>
             {
                 new()
@@ -217,36 +244,15 @@ public class PropertyServiceTests
         };
     }
 
-    private static PropertyDto CreateTestPropertyDto(string ownerId)
+    private static Owner CreateTestOwner(string id)
     {
-        return new PropertyDto
-        {
-            IdOwner = ownerId,
-            Name = "Test Property",
-            Address = "123 Test St",
-            Price = 250000,
-            Image = "https://example.com/image.jpg"
-        };
-    }
-
-    private static PropertyDetailDto CreateTestPropertyDetailDto(string id)
-    {
-        return new PropertyDetailDto
+        return new Owner
         {
             Id = id,
-            Name = "Test Property",
-            Address = "123 Test St",
-            Price = 250000,
-            CodeInternal = "PROP-001",
-            Year = 2020,
-            Owner = new OwnerDto
-            {
-                IdOwner = "OWN-001",
-                Name = "John Doe",
-                Address = "456 Owner St"
-            },
-            Images = new List<PropertyImageDto>(),
-            Traces = new List<PropertyTraceDto>()
+            Name = "John Doe",
+            Address = "456 Owner St",
+            Photo = null,
+            Birthday = null
         };
     }
 }

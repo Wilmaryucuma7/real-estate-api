@@ -7,7 +7,7 @@ using RealEstateAPI.Domain.Entities;
 namespace RealEstateAPI.Tests.UnitTests.Mappings;
 
 /// <summary>
-/// Unit tests for AutoMapper configuration and mappings.
+/// Unit tests for AutoMapper configuration and mappings with owner references.
 /// </summary>
 [TestFixture]
 public class PropertyMappingProfileTests
@@ -51,14 +51,7 @@ public class PropertyMappingProfileTests
             Price = 450000,
             CodeInternal = "PROP-001",
             Year = 2022,
-            Owner = new Owner
-            {
-                IdOwner = "OWN-001",
-                Name = "John Doe",
-                Address = "456 Main St",
-                Photo = null,
-                Birthday = null
-            },
+            OwnerId = "OWN-001",
             Images = new List<PropertyImage>
             {
                 new()
@@ -100,14 +93,7 @@ public class PropertyMappingProfileTests
             Price = 450000,
             CodeInternal = "PROP-001",
             Year = 2022,
-            Owner = new Owner
-            {
-                IdOwner = "OWN-001",
-                Name = "John Doe",
-                Address = "456 Main St",
-                Photo = "https://example.com/owner.jpg",
-                Birthday = new DateTime(1980, 5, 15)
-            },
+            OwnerId = "OWN-001",
             Images = new List<PropertyImage>
             {
                 new()
@@ -139,8 +125,7 @@ public class PropertyMappingProfileTests
         Assert.That(result.Name, Is.EqualTo("Beach House"));
         Assert.That(result.CodeInternal, Is.EqualTo("PROP-001"));
         Assert.That(result.Year, Is.EqualTo(2022));
-        Assert.That(result.Owner, Is.Not.Null);
-        Assert.That(result.Owner.IdOwner, Is.EqualTo("OWN-001"));
+        Assert.That(result.Owner, Is.Null); // Owner is loaded separately in service
         Assert.That(result.Images.Count, Is.EqualTo(1));
         Assert.That(result.Traces.Count, Is.EqualTo(1));
     }
@@ -151,7 +136,7 @@ public class PropertyMappingProfileTests
         // Arrange
         var owner = new Owner
         {
-            IdOwner = "OWN-001",
+            Id = "OWN-001",
             Name = "Jane Smith",
             Address = "789 Park Ave",
             Photo = "https://example.com/photo.jpg",

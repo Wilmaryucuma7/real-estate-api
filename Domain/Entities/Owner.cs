@@ -1,15 +1,16 @@
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace RealEstateAPI.Domain.Entities;
 
 /// <summary>
-/// Represents the owner of a property.
+/// Represents the owner of properties (standalone collection).
 /// </summary>
 public class Owner
 {
-    [BsonElement("idOwner")]
-    [BsonRequired]
-    public required string IdOwner { get; set; }
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public required string Id { get; set; } // e.g., "OWN-001"
 
     [BsonElement("name")]
     [BsonRequired]

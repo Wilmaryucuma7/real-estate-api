@@ -19,6 +19,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 
 // Register repositories
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
+builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
 
 // Register services
 builder.Services.AddScoped<IPropertyService, PropertyService>();

@@ -5,10 +5,91 @@
 // Switch to RealEstateDB database (creates it if doesn't exist)
 use RealEstateDB
 
-// Drop existing collection if you want to start fresh
+// Drop existing collections if you want to start fresh
+// db.Owners.drop()
 // db.Properties.drop()
 
-// Insert sample properties with embedded owners, images, and traces
+// ========================================
+// 1. INSERT OWNERS (Separate Collection)
+// ========================================
+db.Owners.insertMany([
+  {
+    "_id": "OWN-001",
+    "name": "Maria Rodriguez",
+    "address": "450 Brickell Ave, Miami, FL 33131",
+    "photo": "https://i.pravatar.cc/150?img=47",
+    "birthday": ISODate("1985-03-15T00:00:00Z")
+  },
+  {
+    "_id": "OWN-002",
+    "name": "John Anderson",
+    "address": "200 SE 15th Rd, Miami, FL 33129",
+    "photo": "https://i.pravatar.cc/150?img=12",
+    "birthday": ISODate("1978-11-22T00:00:00Z")
+  },
+  {
+    "_id": "OWN-003",
+    "name": "Sarah Johnson",
+    "address": "789 Maple Ave, Coral Gables, FL 33146",
+    "photo": "https://i.pravatar.cc/150?img=32",
+    "birthday": ISODate("1990-07-08T00:00:00Z")
+  },
+  {
+    "_id": "OWN-004",
+    "name": "Robert Chen",
+    "address": "123 Harbor View, Key Biscayne, FL 33149",
+    "photo": "https://i.pravatar.cc/150?img=68",
+    "birthday": ISODate("1982-04-30T00:00:00Z")
+  },
+  {
+    "_id": "OWN-005",
+    "name": "Isabella Martinez",
+    "address": "901 Washington Ave, Miami Beach, FL 33139",
+    "photo": "https://i.pravatar.cc/150?img=45",
+    "birthday": ISODate("1988-12-10T00:00:00Z")
+  },
+  {
+    "_id": "OWN-006",
+    "name": "Michael Thompson",
+    "address": "333 SE 3rd Ave, Miami, FL 33131",
+    "photo": "https://i.pravatar.cc/150?img=15",
+    "birthday": ISODate("1992-06-18T00:00:00Z")
+  },
+  {
+    "_id": "OWN-007",
+    "name": "Emily Davis",
+    "address": "456 Palmetto Bay, Coconut Grove, FL 33133",
+    "photo": "https://i.pravatar.cc/150?img=28",
+    "birthday": ISODate("1987-09-25T00:00:00Z")
+  },
+  {
+    "_id": "OWN-008",
+    "name": "David Kim",
+    "address": "222 Eco Lane, Pinecrest, FL 33156",
+    "photo": "https://i.pravatar.cc/150?img=52",
+    "birthday": ISODate("1991-02-14T00:00:00Z")
+  },
+  {
+    "_id": "OWN-009",
+    "name": "Jennifer Wilson",
+    "address": "777 Club House Rd, Doral, FL 33178",
+    "photo": "https://i.pravatar.cc/150?img=26",
+    "birthday": ISODate("1984-08-03T00:00:00Z")
+  },
+  {
+    "_id": "OWN-010",
+    "name": "Carlos Ramirez",
+    "address": "155 Pine Ave, Homestead, FL 33030",
+    "photo": "https://i.pravatar.cc/150?img=60",
+    "birthday": ISODate("1989-05-28T00:00:00Z")
+  }
+]);
+
+print("? Successfully inserted 10 owners");
+
+// ========================================
+// 2. INSERT PROPERTIES (with Owner References)
+// ========================================
 db.Properties.insertMany([
   {
     "name": "Modern Beach House",
@@ -16,13 +97,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("1250000.00"),
     "codeInternal": "PROP-2024-001",
     "year": 2022,
-    "owner": {
-      "idOwner": "OWN-001",
-      "name": "Maria Rodriguez",
-      "address": "450 Brickell Ave, Miami, FL 33131",
-      "photo": "https://i.pravatar.cc/150?img=47",
-      "birthday": ISODate("1985-03-15T00:00:00Z")
-    },
+    "ownerId": "OWN-001",
     "images": [
       {
         "idPropertyImage": "IMG-001-01",
@@ -56,13 +131,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("2500000.00"),
     "codeInternal": "PROP-2024-002",
     "year": 2023,
-    "owner": {
-      "idOwner": "OWN-002",
-      "name": "John Anderson",
-      "address": "200 SE 15th Rd, Miami, FL 33129",
-      "photo": "https://i.pravatar.cc/150?img=12",
-      "birthday": ISODate("1978-11-22T00:00:00Z")
-    },
+    "ownerId": "OWN-002",
     "images": [
       {
         "idPropertyImage": "IMG-002-01",
@@ -91,13 +160,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("650000.00"),
     "codeInternal": "PROP-2024-003",
     "year": 2018,
-    "owner": {
-      "idOwner": "OWN-003",
-      "name": "Sarah Johnson",
-      "address": "789 Maple Ave, Coral Gables, FL 33146",
-      "photo": "https://i.pravatar.cc/150?img=32",
-      "birthday": ISODate("1990-07-08T00:00:00Z")
-    },
+    "ownerId": "OWN-003",
     "images": [
       {
         "idPropertyImage": "IMG-003-01",
@@ -128,13 +191,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("3800000.00"),
     "codeInternal": "PROP-2024-004",
     "year": 2021,
-    "owner": {
-      "idOwner": "OWN-004",
-      "name": "Robert Chen",
-      "address": "123 Harbor View, Key Biscayne, FL 33149",
-      "photo": "https://i.pravatar.cc/150?img=68",
-      "birthday": ISODate("1982-04-30T00:00:00Z")
-    },
+    "ownerId": "OWN-004",
     "images": [
       {
         "idPropertyImage": "IMG-004-01",
@@ -168,13 +225,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("850000.00"),
     "codeInternal": "PROP-2024-005",
     "year": 1935,
-    "owner": {
-      "idOwner": "OWN-005",
-      "name": "Isabella Martinez",
-      "address": "901 Washington Ave, Miami Beach, FL 33139",
-      "photo": "https://i.pravatar.cc/150?img=45",
-      "birthday": ISODate("1988-12-10T00:00:00Z")
-    },
+    "ownerId": "OWN-005",
     "images": [
       {
         "idPropertyImage": "IMG-005-01",
@@ -203,13 +254,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("475000.00"),
     "codeInternal": "PROP-2024-006",
     "year": 2020,
-    "owner": {
-      "idOwner": "OWN-006",
-      "name": "Michael Thompson",
-      "address": "333 SE 3rd Ave, Miami, FL 33131",
-      "photo": "https://i.pravatar.cc/150?img=15",
-      "birthday": ISODate("1992-06-18T00:00:00Z")
-    },
+    "ownerId": "OWN-006",
     "images": [
       {
         "idPropertyImage": "IMG-006-01",
@@ -233,13 +278,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("1950000.00"),
     "codeInternal": "PROP-2024-007",
     "year": 2019,
-    "owner": {
-      "idOwner": "OWN-007",
-      "name": "Emily Davis",
-      "address": "456 Palmetto Bay, Coconut Grove, FL 33133",
-      "photo": "https://i.pravatar.cc/150?img=28",
-      "birthday": ISODate("1987-09-25T00:00:00Z")
-    },
+    "ownerId": "OWN-007",
     "images": [
       {
         "idPropertyImage": "IMG-007-01",
@@ -268,13 +307,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("725000.00"),
     "codeInternal": "PROP-2024-008",
     "year": 2023,
-    "owner": {
-      "idOwner": "OWN-008",
-      "name": "David Kim",
-      "address": "222 Eco Lane, Pinecrest, FL 33156",
-      "photo": "https://i.pravatar.cc/150?img=52",
-      "birthday": ISODate("1991-02-14T00:00:00Z")
-    },
+    "ownerId": "OWN-008",
     "images": [
       {
         "idPropertyImage": "IMG-008-01",
@@ -303,13 +336,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("1575000.00"),
     "codeInternal": "PROP-2024-009",
     "year": 2017,
-    "owner": {
-      "idOwner": "OWN-009",
-      "name": "Jennifer Wilson",
-      "address": "777 Club House Rd, Doral, FL 33178",
-      "photo": "https://i.pravatar.cc/150?img=26",
-      "birthday": ISODate("1984-08-03T00:00:00Z")
-    },
+    "ownerId": "OWN-009",
     "images": [
       {
         "idPropertyImage": "IMG-009-01",
@@ -345,13 +372,7 @@ db.Properties.insertMany([
     "price": NumberDecimal("385000.00"),
     "codeInternal": "PROP-2024-010",
     "year": 2015,
-    "owner": {
-      "idOwner": "OWN-010",
-      "name": "Carlos Ramirez",
-      "address": "155 Pine Ave, Homestead, FL 33030",
-      "photo": "https://i.pravatar.cc/150?img=60",
-      "birthday": ISODate("1989-05-28T00:00:00Z")
-    },
+    "ownerId": "OWN-010",
     "images": [
       {
         "idPropertyImage": "IMG-010-01",
@@ -378,12 +399,23 @@ db.Properties.insertMany([
   }
 ]);
 
-// Create indexes for optimized queries
+print("? Successfully inserted 10 properties");
+
+// ========================================
+// 3. CREATE INDEXES
+// ========================================
+// Properties collection indexes
 db.Properties.createIndex({ "name": "text", "address": "text" });
 db.Properties.createIndex({ "price": 1 });
-db.Properties.createIndex({ "owner.idOwner": 1 });
+db.Properties.createIndex({ "ownerId": 1 }); // Index on foreign key
 db.Properties.createIndex({ "name": 1, "address": 1, "price": 1 });
 
-print("? Successfully inserted 10 properties with sample data");
+// Owners collection indexes
+db.Owners.createIndex({ "name": 1 });
+
 print("? Created indexes for optimized queries");
-print("? Database 'RealEstateDB' is ready!");
+print("? Database 'RealEstateDB' with separate collections is ready!");
+print("");
+print("?? Summary:");
+print("  - Owners: " + db.Owners.countDocuments() + " documents");
+print("  - Properties: " + db.Properties.countDocuments() + " documents");
