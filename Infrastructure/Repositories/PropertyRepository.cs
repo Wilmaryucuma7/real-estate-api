@@ -140,7 +140,7 @@ public class PropertyRepository : IPropertyRepository
         var properties = await _collection
             .Find(combinedFilter)
             .Project<Property>(projection)
-            .Skip((filter.Page ?? 1 - 1) * (filter.PageSize ?? 10))
+            .Skip(((filter.Page ?? 1) - 1) * (filter.PageSize ?? 10))
             .Limit(filter.PageSize ?? 10)
             .ToListAsync();
 
