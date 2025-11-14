@@ -185,7 +185,7 @@ docker-compose exec api dotnet test
 
 ---
 
-## ?? Features
+## ? Features
 
 - ? Clean Architecture with DI
 - ? Repository Pattern
