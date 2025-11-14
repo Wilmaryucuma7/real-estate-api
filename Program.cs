@@ -11,28 +11,21 @@ using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure MongoDB settings
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection(MongoDbSettings.SectionName));
 
-// Register MongoDB context
 builder.Services.AddSingleton<MongoDbContext>();
 
-// Register database initializer
 builder.Services.AddSingleton<DatabaseInitializer>();
 
-// Register repositories
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
 
-// Register services
 builder.Services.AddScoped<IPropertyService, PropertyService>();
 builder.Services.AddScoped<IOwnerService, OwnerService>();
 
-// Register validators
 builder.Services.AddScoped<PropertyFilterValidator>();
 
-// Register AutoMapper compatible with 15.x
 builder.Services.AddSingleton<IMapper>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -43,10 +36,8 @@ builder.Services.AddSingleton<IMapper>(sp =>
     return config.CreateMapper();
 });
 
-// Add controllers
 builder.Services.AddControllers();
 
-// Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -58,7 +49,7 @@ builder.Services.AddSwaggerGen(options =>
         Contact = new()
         {
             Name = "Real Estate API",
-            Email = "crios@millionluxury.com"
+            Email = "wilkrack7@gmail.com"
         }
     });
 
@@ -70,7 +61,6 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -83,9 +73,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// ========================================
 // DATABASE INITIALIZATION - Fail Fast
-// ========================================
 // Validate database on startup - will throw exception if not configured
 try
 {
