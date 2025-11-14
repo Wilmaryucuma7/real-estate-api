@@ -276,7 +276,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # MongoDB data
-data/
 *.lock
 
 # Configuration - Secrets and environment-specific settings
