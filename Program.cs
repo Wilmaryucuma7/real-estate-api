@@ -95,7 +95,7 @@ try
 catch (InvalidOperationException ex)
 {
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogCritical(ex, "? APPLICATION STARTUP FAILED: {Message}", ex.Message);
+    logger.LogCritical(ex, "?? APPLICATION STARTUP FAILED: {Message}", ex.Message);
     logger.LogCritical("?? The application cannot start without a properly configured database.");
     
     // Exit the application - don't start if database is not ready

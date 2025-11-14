@@ -47,6 +47,7 @@ public class PropertyMappingProfileTests
         {
             Id = "507f1f77bcf86cd799439011",
             Name = "Beach House",
+            Slug = "beach-house",
             Address = "123 Ocean Drive",
             Price = 450000,
             CodeInternal = "PROP-001",
@@ -90,6 +91,7 @@ public class PropertyMappingProfileTests
         {
             Id = "507f1f77bcf86cd799439011",
             Name = "Beach House",
+            Slug = "beach-house",
             Address = "123 Ocean Drive",
             Price = 450000,
             CodeInternal = "PROP-001",

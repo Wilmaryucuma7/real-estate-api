@@ -279,7 +279,8 @@ FodyWeavers.xsd
 data/
 *.lock
 
-# Environment variables
+# Configuration - Secrets and environment-specific settings
 .env
 .env.local
 .env.*.local
+appsettings.*.local.json

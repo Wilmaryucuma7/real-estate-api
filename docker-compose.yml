@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: realestate-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: RealEstateDB
+    volumes:
+      - mongodb_data:/data/db
+      - ./Database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - realestate-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/RealEstateDB --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: realestate-api
+    restart: always
+    ports:
+      - "5000:8080"
+      - "5001:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - MONGODB__CONNECTIONSTRING=mongodb://mongodb:27017
+      - MONGODB__DATABASENAME=RealEstateDB
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - realestate-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  realestate-network:
+    driver: bridge

@@ -9,9 +9,9 @@ using System.Text.RegularExpressions;
 namespace RealEstateAPI.Infrastructure.Repositories;
 
 /// <summary>
-/// MongoDB implementation of property repository with pagination and connection error handling.
+/// MongoDB implementation of property repository with optimized queries.
 /// </summary>
-public sealed class PropertyRepository : IPropertyRepository
+public class PropertyRepository : IPropertyRepository
 {
     private readonly IMongoCollection<Property> _collection;
     private readonly ILogger<PropertyRepository> _logger;
@@ -20,174 +20,130 @@ public sealed class PropertyRepository : IPropertyRepository
     {
         _collection = context.Properties;
         _logger = logger;
+        EnsureIndexesAsync().GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Ensures required indexes exist for optimal query performance.
+    /// </summary>
+    private async Task EnsureIndexesAsync()
+    {
+        var indexKeys = Builders<Property>.IndexKeys;
+        
+        // Create slug index for fast slug-based lookups
+        var slugIndexModel = new CreateIndexModel<Property>(
+            indexKeys.Ascending(p => p.Slug),
+            new CreateIndexOptions { Unique = true, Name = "slug_unique" });
+
+        // Create ownerId index for fast owner-based lookups
+        var ownerIdIndexModel = new CreateIndexModel<Property>(
+            indexKeys.Ascending(p => p.OwnerId),
+            new CreateIndexOptions { Name = "ownerId_index" });
+
+        try
+        {
+            await _collection.Indexes.CreateManyAsync(new[] { slugIndexModel, ownerIdIndexModel });
+        }
+        catch (MongoCommandException)
+        {
+            // Indexes already exist, ignore
+        }
     }
 
     public async Task<IEnumerable<Property>> GetAllAsync()
     {
-        try
-        {
-            return await _collection
-                .Find(FilterDefinition<Property>.Empty)
-                .ToListAsync();
-        }
-        catch (MongoException ex)
-        {
-            _logger.LogError(ex, "MongoDB connection error while retrieving all properties");
-            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
-        }
-        catch (TimeoutException ex)
-        {
-            _logger.LogError(ex, "MongoDB timeout while retrieving all properties");
-            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
-        }
+        // Only fetch necessary fields to reduce memory usage
+        var projection = Builders<Property>.Projection
+            .Exclude(p => p.Traces); // Don't load traces for list views
+
+        return await _collection
+            .Find(FilterDefinition<Property>.Empty)
+            .Project<Property>(projection)
+            .ToListAsync();
     }
 
     public async Task<Property?> GetByIdAsync(string id)
     {
-        if (!ObjectId.TryParse(id, out var objectId))
-            return null;
-
-        try
-        {
-            return await _collection
-                .Find(p => p.Id == id)
-                .FirstOrDefaultAsync();
-        }
-        catch (MongoException ex)
-        {
-            _logger.LogError(ex, "MongoDB connection error while retrieving property {PropertyId}", id);
-            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
-        }
-        catch (TimeoutException ex)
-        {
-            _logger.LogError(ex, "MongoDB timeout while retrieving property {PropertyId}", id);
-            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
-        }
-    }
-
-    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetFilteredAsync(PropertyFilterDto filter)
-    {
-        try
-        {
-            var filterBuilder = Builders<Property>.Filter;
-            var filters = new List<FilterDefinition<Property>>();
-
-            // Name filter (case-insensitive partial match)
-            if (!string.IsNullOrWhiteSpace(filter.Name))
-            {
-                filters.Add(filterBuilder.Regex(
-                    p => p.Name, 
-                    new BsonRegularExpression(filter.Name, "i")));
-            }
-
-            // Address filter (case-insensitive partial match)
-            if (!string.IsNullOrWhiteSpace(filter.Address))
-            {
-                filters.Add(filterBuilder.Regex(
-                    p => p.Address, 
-                    new BsonRegularExpression(filter.Address, "i")));
-            }
-
-            // Price range filter
-            if (filter.MinPrice.HasValue)
-            {
-                filters.Add(filterBuilder.Gte(p => p.Price, filter.MinPrice.Value));
-            }
-
-            if (filter.MaxPrice.HasValue)
-            {
-                filters.Add(filterBuilder.Lte(p => p.Price, filter.MaxPrice.Value));
-            }
-
-            // Combine all filters
-            var combinedFilter = filters.Count > 0
-                ? filterBuilder.And(filters)
-                : FilterDefinition<Property>.Empty;
-
-            // Get total count BEFORE pagination
-            var totalCount = (int)await _collection.CountDocumentsAsync(combinedFilter);
-
-            // Apply pagination
-            var page = filter.Page ?? 1;
-            var pageSize = filter.PageSize ?? 10;
-            var skip = (page - 1) * pageSize;
-
-            var properties = await _collection
-                .Find(combinedFilter)
-                .Skip(skip)
-                .Limit(pageSize)
-                .ToListAsync();
-
-            return (properties, totalCount);
-        }
-        catch (MongoException ex)
-        {
-            _logger.LogError(ex, "MongoDB connection error while filtering properties");
-            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
-        }
-        catch (TimeoutException ex)
-        {
-            _logger.LogError(ex, "MongoDB timeout while filtering properties");
-            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
-        }
-    }
-
-    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetByOwnerIdAsync(string ownerId, int page, int pageSize)
-    {
-        try
-        {
-            var filter = Builders<Property>.Filter.Eq(p => p.OwnerId, ownerId);
-
-            // Get total count
-            var totalCount = (int)await _collection.CountDocumentsAsync(filter);
-
-            // Apply pagination
-            var skip = (page - 1) * pageSize;
-            var properties = await _collection
-                .Find(filter)
-                .Skip(skip)
-                .Limit(pageSize)
-                .ToListAsync();
-
-            return (properties, totalCount);
-        }
-        catch (MongoException ex)
-        {
-            _logger.LogError(ex, "MongoDB connection error while retrieving properties for owner {OwnerId}", ownerId);
-            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
-        }
-        catch (TimeoutException ex)
-        {
-            _logger.LogError(ex, "MongoDB timeout while retrieving properties for owner {OwnerId}", ownerId);
-            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
-        }
+        return await _collection.Find(p => p.Id == id).FirstOrDefaultAsync();
     }
 
     public async Task<Property?> GetBySlugAsync(string slug)
     {
-        try
-        {
-            // Convert slug back to potential name match
-            // "modern-beach-house" -> "Modern Beach House"
-            var namePattern = slug.Replace("-", " ");
-            
-            var filter = Builders<Property>.Filter.Regex(
-                p => p.Name,
-                new BsonRegularExpression($"^{Regex.Escape(namePattern)}$", "i"));
+        // Optimized: Direct MongoDB query using slug index
+        return await _collection
+            .Find(p => p.Slug == slug)
+            .FirstOrDefaultAsync();
+    }
 
-            return await _collection
-                .Find(filter)
-                .FirstOrDefaultAsync();
-        }
-        catch (MongoException ex)
+    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetByOwnerIdAsync(
+        string ownerId,
+        int page,
+        int pageSize)
+    {
+        var filter = Builders<Property>.Filter.Eq(p => p.OwnerId, ownerId);
+        
+        // Count total for pagination
+        var totalCount = await _collection.CountDocumentsAsync(filter);
+
+        // Exclude traces from list views for performance
+        var projection = Builders<Property>.Projection
+            .Exclude(p => p.Traces);
+
+        // Get paginated results using ownerId index
+        var properties = await _collection
+            .Find(filter)
+            .Project<Property>(projection)
+            .Skip((page - 1) * pageSize)
+            .Limit(pageSize)
+            .ToListAsync();
+
+        return (properties, (int)totalCount);
+    }
+
+    public async Task<(IEnumerable<Property> Properties, int TotalCount)> GetFilteredAsync(PropertyFilterDto filter)
+    {
+        var filterBuilder = Builders<Property>.Filter;
+        var filters = new List<FilterDefinition<Property>>();
+
+        if (!string.IsNullOrWhiteSpace(filter.Name))
         {
-            _logger.LogError(ex, "MongoDB connection error while retrieving property by slug {Slug}", slug);
-            throw new InvalidOperationException("Database connection failed. Please ensure MongoDB is running.", ex);
+            filters.Add(filterBuilder.Regex(p => p.Name, new MongoDB.Bson.BsonRegularExpression(filter.Name, "i")));
         }
-        catch (TimeoutException ex)
+
+        if (!string.IsNullOrWhiteSpace(filter.Address))
         {
-            _logger.LogError(ex, "MongoDB timeout while retrieving property by slug {Slug}", slug);
-            throw new InvalidOperationException("Database operation timed out. Please try again later.", ex);
+            filters.Add(filterBuilder.Regex(p => p.Address, new MongoDB.Bson.BsonRegularExpression(filter.Address, "i")));
         }
+
+        if (filter.MinPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Gte(p => p.Price, filter.MinPrice.Value));
+        }
+
+        if (filter.MaxPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Lte(p => p.Price, filter.MaxPrice.Value));
+        }
+
+        var combinedFilter = filters.Count > 0
+            ? filterBuilder.And(filters)
+            : FilterDefinition<Property>.Empty;
+
+        // Count total for pagination
+        var totalCount = await _collection.CountDocumentsAsync(combinedFilter);
+
+        // Exclude traces from list views for performance
+        var projection = Builders<Property>.Projection
+            .Exclude(p => p.Traces);
+
+        // Get paginated results
+        var properties = await _collection
+            .Find(combinedFilter)
+            .Project<Property>(projection)
+            .Skip((filter.Page ?? 1 - 1) * (filter.PageSize ?? 10))
+            .Limit(filter.PageSize ?? 10)
+            .ToListAsync();
+
+        return (properties, (int)totalCount);
     }
 }

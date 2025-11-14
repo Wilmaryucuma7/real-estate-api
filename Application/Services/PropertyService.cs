@@ -3,11 +3,12 @@ using Microsoft.Extensions.Logging;
 using RealEstateAPI.Application.DTOs;
 using RealEstateAPI.Application.Exceptions;
 using RealEstateAPI.Application.Interfaces;
+using RealEstateAPI.Application.Constants;
 
 namespace RealEstateAPI.Application.Services;
 
 /// <summary>
-/// Service implementation for property business logic with owner relationships.
+/// Service implementation for property business logic with optimized queries.
 /// </summary>
 public sealed class PropertyService : IPropertyService
 {
@@ -33,22 +34,8 @@ public sealed class PropertyService : IPropertyService
         _logger.LogInformation("Retrieving all properties");
         var properties = await _propertyRepository.GetAllAsync();
         
-        // Get all unique owner IDs
-        var ownerIds = properties.Select(p => p.OwnerId).Distinct();
-        var owners = await _ownerRepository.GetByIdsAsync(ownerIds);
-        var ownerDictionary = owners.ToDictionary(o => o.Id);
-
-        var propertyDtos = properties.Select(p =>
-        {
-            var dto = _mapper.Map<PropertyDto>(p);
-            if (ownerDictionary.TryGetValue(p.OwnerId, out var owner))
-            {
-                dto.IdOwner = owner.Id;
-            }
-            return dto;
-        });
-
-        return propertyDtos;
+        // Map directly without loading owners - DTO only needs IdOwner
+        return _mapper.Map<IEnumerable<PropertyDto>>(properties);
     }
 
     public async Task<PropertyDetailDto?> GetPropertyByIdAsync(string id)
@@ -65,10 +52,7 @@ public sealed class PropertyService : IPropertyService
             throw new PropertyNotFoundException(id);
         }
 
-        // Map property - IdOwner is already set by AutoMapper
-        var propertyDto = _mapper.Map<PropertyDetailDto>(property);
-
-        return propertyDto;
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<PagedResponse<PropertyDto>> GetFilteredPropertiesAsync(PropertyFilterDto filter)
@@ -77,25 +61,13 @@ public sealed class PropertyService : IPropertyService
         
         var (properties, totalCount) = await _propertyRepository.GetFilteredAsync(filter);
         
-        // Get all unique owner IDs
-        var ownerIds = properties.Select(p => p.OwnerId).Distinct();
-        var owners = await _ownerRepository.GetByIdsAsync(ownerIds);
-        var ownerDictionary = owners.ToDictionary(o => o.Id);
-
-        var propertyDtos = properties.Select(p =>
-        {
-            var dto = _mapper.Map<PropertyDto>(p);
-            if (ownerDictionary.TryGetValue(p.OwnerId, out var owner))
-            {
-                dto.IdOwner = owner.Id;
-            }
-            return dto;
-        });
+        // Map directly without loading owners - performance optimization
+        var propertyDtos = _mapper.Map<IEnumerable<PropertyDto>>(properties);
 
         return PagedResponse<PropertyDto>.Create(
             propertyDtos,
-            filter.Page ?? 1,
-            filter.PageSize ?? 10,
+            filter.Page ?? PaginationConstants.DefaultPage,
+            filter.PageSize ?? PaginationConstants.DefaultPageSize,
             totalCount
         );
     }
@@ -106,6 +78,8 @@ public sealed class PropertyService : IPropertyService
             throw new ArgumentException("Property slug cannot be null or empty", nameof(slug));
 
         _logger.LogInformation("Retrieving property by slug: {Slug}", slug);
+        
+        // Optimized: Uses slug index in MongoDB
         var property = await _propertyRepository.GetBySlugAsync(slug);
         
         if (property is null)
@@ -114,10 +88,7 @@ public sealed class PropertyService : IPropertyService
             return null;
         }
 
-        // Map property - IdOwner is already set by AutoMapper
-        var propertyDto = _mapper.Map<PropertyDetailDto>(property);
-
-        return propertyDto;
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<IEnumerable<PropertyTraceDto>> GetPropertyTracesBySlugAsync(string slug)
@@ -126,6 +97,8 @@ public sealed class PropertyService : IPropertyService
             throw new ArgumentException("Property slug cannot be null or empty", nameof(slug));
 
         _logger.LogInformation("Retrieving traces for property slug: {Slug}", slug);
+        
+        // Optimized: Uses slug index
         var property = await _propertyRepository.GetBySlugAsync(slug);
         
         if (property is null)
@@ -134,9 +107,6 @@ public sealed class PropertyService : IPropertyService
             throw new PropertyNotFoundException(slug);
         }
 
-        // Map traces to DTOs - now PropertyTrace mapping is defined
-        var traceDtos = _mapper.Map<IEnumerable<PropertyTraceDto>>(property.Traces ?? Enumerable.Empty<Domain.Entities.PropertyTrace>());
-        
-        return traceDtos;
+        return _mapper.Map<IEnumerable<PropertyTraceDto>>(property.Traces ?? Enumerable.Empty<Domain.Entities.PropertyTrace>());
     }
 }

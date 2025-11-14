@@ -16,6 +16,10 @@ public class Property
     [BsonRequired]
     public required string Name { get; set; }
 
+    [BsonElement("slug")]
+    [BsonRequired]
+    public required string Slug { get; set; }
+
     [BsonElement("address")]
     [BsonRequired]
     public required string Address { get; set; }

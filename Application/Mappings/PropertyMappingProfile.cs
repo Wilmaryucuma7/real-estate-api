@@ -1,6 +1,5 @@
 using AutoMapper;
 using RealEstateAPI.Application.DTOs;
-using RealEstateAPI.Application.Helpers;
 using RealEstateAPI.Domain.Entities;
 
 namespace RealEstateAPI.Application.Mappings;
@@ -14,7 +13,7 @@ public sealed class PropertyMappingProfile : Profile
     {
         // Property -> PropertyDto (for list views - without Id)
         CreateMap<Property, PropertyDto>()
-            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugHelper.GenerateSlug(src.Name)))
+            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => src.Slug))
             .ForMember(dest => dest.IdOwner, opt => opt.MapFrom(src => src.OwnerId))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.Address, opt => opt.MapFrom(src => src.Address))
@@ -27,7 +26,7 @@ public sealed class PropertyMappingProfile : Profile
         // Property -> PropertyDetailDto (for detail views with Id)
         CreateMap<Property, PropertyDetailDto>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => SlugHelper.GenerateSlug(src.Name)))
+            .ForMember(dest => dest.Slug, opt => opt.MapFrom(src => src.Slug))
             .ForMember(dest => dest.IdOwner, opt => opt.MapFrom(src => src.OwnerId));
 
         // Owner -> OwnerDto

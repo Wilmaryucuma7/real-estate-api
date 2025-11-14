@@ -187,7 +187,7 @@ public class PropertyFilterValidatorTests
 
         // Assert
         Assert.That(result.IsValid, Is.False);
-        Assert.That(result.Errors.Any(e => e.ErrorMessage.Contains("between 1 and 100")), Is.True);
+        Assert.That(result.Errors.Any(e => e.ErrorMessage.Contains("100")), Is.True);
     }
 
     [Test]

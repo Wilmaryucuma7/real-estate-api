@@ -43,32 +43,24 @@ public class PropertyServiceTests
         // Arrange
         var properties = new List<Property>
         {
-            CreateTestProperty("1", "OWN-001"),
-            CreateTestProperty("2", "OWN-002")
-        };
-
-        var owners = new List<Owner>
-        {
-            CreateTestOwner("OWN-001"),
-            CreateTestOwner("OWN-002")
+            CreateTestProperty("1", "test-property-1", "OWN-001"),
+            CreateTestProperty("2", "test-property-2", "OWN-002")
         };
 
         _propertyRepositoryMock.Setup(r => r.GetAllAsync())
             .ReturnsAsync(properties);
 
-        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
-            .ReturnsAsync(owners);
-
-        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
-            .Returns((Property p) => new PropertyDto
+        // Mock IEnumerable mapping
+        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(It.IsAny<IEnumerable<Property>>()))
+            .Returns((IEnumerable<Property> props) => props.Select(p => new PropertyDto
             {
-                Slug = "test-property",
+                Slug = p.Slug,
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
                 Price = p.Price,
                 Image = "https://example.com/image.jpg"
-            });
+            }));
 
         // Act
         var result = await _service.GetAllPropertiesAsync();
@@ -77,7 +69,6 @@ public class PropertyServiceTests
         Assert.That(result, Is.Not.Null);
         Assert.That(result.Count(), Is.EqualTo(2));
         _propertyRepositoryMock.Verify(r => r.GetAllAsync(), Times.Once);
-        _ownerRepositoryMock.Verify(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()), Times.Once);
     }
 
     [Test]
@@ -85,7 +76,7 @@ public class PropertyServiceTests
     {
         // Arrange
         var propertyId = "507f1f77bcf86cd799439011";
-        var property = CreateTestProperty(propertyId, "OWN-001");
+        var property = CreateTestProperty(propertyId, "test-property", "OWN-001");
         
         _propertyRepositoryMock.Setup(r => r.GetByIdAsync(propertyId))
             .ReturnsAsync(property);
@@ -94,7 +85,7 @@ public class PropertyServiceTests
             .Returns(new PropertyDetailDto
             {
                 Id = property.Id!,
-                Slug = "test-property",
+                Slug = property.Slug,
                 IdOwner = property.OwnerId,
                 Name = property.Name,
                 Address = property.Address,
@@ -142,25 +133,22 @@ public class PropertyServiceTests
     {
         // Arrange
         var filter = new PropertyFilterDto { Name = "Beach House", Page = 1, PageSize = 10 };
-        var properties = new List<Property> { CreateTestProperty("1", "OWN-001") };
-        var owners = new List<Owner> { CreateTestOwner("OWN-001") };
+        var properties = new List<Property> { CreateTestProperty("1", "beach-house", "OWN-001") };
 
         _propertyRepositoryMock.Setup(r => r.GetFilteredAsync(filter))
             .ReturnsAsync((properties, 1));
 
-        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
-            .ReturnsAsync(owners);
-
-        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
-            .Returns((Property p) => new PropertyDto
+        // Mock IEnumerable mapping
+        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(It.IsAny<IEnumerable<Property>>()))
+            .Returns((IEnumerable<Property> props) => props.Select(p => new PropertyDto
             {
-                Slug = "beach-house",
+                Slug = p.Slug,
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
                 Price = p.Price,
                 Image = "https://example.com/image.jpg"
-            });
+            }));
 
         // Act
         var result = await _service.GetFilteredPropertiesAsync(filter);
@@ -180,25 +168,22 @@ public class PropertyServiceTests
     {
         // Arrange
         var filter = new PropertyFilterDto { Page = 2, PageSize = 10 };
-        var properties = new List<Property> { CreateTestProperty("1", "OWN-001") };
-        var owners = new List<Owner> { CreateTestOwner("OWN-001") };
+        var properties = new List<Property> { CreateTestProperty("1", "test-property", "OWN-001") };
 
         _propertyRepositoryMock.Setup(r => r.GetFilteredAsync(filter))
             .ReturnsAsync((properties, 25)); // 25 total items = 3 pages
 
-        _ownerRepositoryMock.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
-            .ReturnsAsync(owners);
-
-        _mapperMock.Setup(m => m.Map<PropertyDto>(It.IsAny<Property>()))
-            .Returns((Property p) => new PropertyDto
+        // Mock IEnumerable mapping
+        _mapperMock.Setup(m => m.Map<IEnumerable<PropertyDto>>(It.IsAny<IEnumerable<Property>>()))
+            .Returns((IEnumerable<Property> props) => props.Select(p => new PropertyDto
             {
-                Slug = "test-property",
+                Slug = p.Slug,
                 IdOwner = p.OwnerId,
                 Name = p.Name,
                 Address = p.Address,
                 Price = p.Price,
                 Image = "https://example.com/image.jpg"
-            });
+            }));
 
         // Act
         var result = await _service.GetFilteredPropertiesAsync(filter);
@@ -210,12 +195,13 @@ public class PropertyServiceTests
         Assert.That(result.HasNextPage, Is.True);
     }
 
-    private static Property CreateTestProperty(string id, string ownerId)
+    private static Property CreateTestProperty(string id, string slug, string ownerId)
     {
         return new Property
         {
             Id = id,
             Name = "Test Property",
+            Slug = slug,
             Address = "123 Test St",
             Price = 250000,
             CodeInternal = "PROP-001",

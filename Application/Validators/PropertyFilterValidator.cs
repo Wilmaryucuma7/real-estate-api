@@ -1,4 +1,5 @@
 using FluentValidation;
+using RealEstateAPI.Application.Constants;
 using RealEstateAPI.Application.DTOs;
 using System.Text.RegularExpressions;
 
@@ -58,15 +59,17 @@ public sealed partial class PropertyFilterValidator : AbstractValidator<Property
         When(x => x.Page.HasValue, () =>
         {
             RuleFor(x => x.Page)
-                .GreaterThan(0)
-                .WithMessage("Page must be greater than 0");
+                .GreaterThanOrEqualTo(PaginationConstants.MinPage)
+                .WithMessage($"Page must be greater than or equal to {PaginationConstants.MinPage}");
         });
 
         When(x => x.PageSize.HasValue, () =>
         {
             RuleFor(x => x.PageSize)
-                .InclusiveBetween(1, 100)
-                .WithMessage("Page size must be between 1 and 100");
+                .GreaterThanOrEqualTo(PaginationConstants.MinPageSize)
+                .WithMessage($"Page size must be greater than or equal to {PaginationConstants.MinPageSize}")
+                .LessThanOrEqualTo(PaginationConstants.MaxPageSize)
+                .WithMessage($"Page size cannot exceed {PaginationConstants.MaxPageSize}");
         });
     }
 
