@@ -13,7 +13,7 @@ docker-compose up -d
 
 **Access:**
 - API: http://localhost:5000
-- Swagger: http://localhost:5000/swagger
+- Swagger: http://localhost:5000/index.html
 - MongoDB: mongodb://localhost:27017
 
 Sample data (10 owners + 10 properties) loads automatically!
