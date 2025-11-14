@@ -2,9 +2,9 @@
 
 A high-performance RESTful API for managing real estate properties, built with .NET 9, MongoDB, and Clean Architecture.
 
-## ?? Quick Start
+## Quick Start
 
-### Option 1: Docker (Recommended) ??
+### Option 1: Docker (Recommended) 
 
 **Everything in one command:**
 ```bash
@@ -54,7 +54,7 @@ dotnet run
 
 ---
 
-## ?? API Endpoints
+## API Endpoints
 
 ### Properties
 
@@ -103,7 +103,7 @@ GET /api/owners/{id}/properties
 
 ---
 
-## ??? Architecture
+## Architecture
 
 Clean Architecture with separation of concerns:
 
@@ -117,7 +117,7 @@ Tests/              # Unit tests (49 tests)
 
 ---
 
-## ?? Configuration
+## Configuration
 
 ### Development (Default)
 
@@ -154,7 +154,7 @@ dotnet user-secrets set "MongoDb:DatabaseName" "your-database-name"
 
 ---
 
-## ?? Testing
+## Testing
 
 ```bash
 # Run all tests (49 tests)
@@ -169,7 +169,7 @@ docker-compose exec api dotnet test
 
 ---
 
-## ?? Database
+## Database
 
 **Collections:**
 - **Owners** (10 records)
@@ -185,23 +185,23 @@ docker-compose exec api dotnet test
 
 ---
 
-## ? Features
+## Features
 
-- ? Clean Architecture with DI
-- ? Repository Pattern
-- ? Slug-based SEO URLs (94% faster)
-- ? Advanced filtering & pagination
-- ? FluentValidation (XSS/SQLi prevention)
-- ? Global exception handling
-- ? MongoDB optimizations
-- ? User Secrets support
-- ? Docker support with auto-seeding
-- ? Swagger documentation
-- ? 49 unit tests (100% passing)
+- Clean Architecture with DI
+- Repository Pattern
+- ?Slug-based SEO URLs (94% faster)
+- Advanced filtering & pagination
+- FluentValidation (XSS/SQLi prevention)
+- Global exception handling
+- MongoDB optimizations
+- User Secrets support
+- Docker support with auto-seeding
+- Swagger documentation
+- 49 unit tests (100% passing)
 
 ---
 
-## ?? Troubleshooting
+## Troubleshooting
 
 **MongoDB connection fails:**
 ```bash
@@ -228,7 +228,7 @@ docker-compose up -d
 
 ---
 
-## ?? Contact
+## Contact
 
 **Email:** wilkrack7@gmail.com
 
